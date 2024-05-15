@@ -1,38 +1,43 @@
 import os
 from dotenv import load_dotenv
-from langchain_openai import OpenAI
-from langchain_core.prompts import PromptTemplate
-from langchain.chains import LLMChain
+from langchain_openai import ChatOpenAI
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.output_parsers import StrOutputParser
+from langchain_core.messages import HumanMessage, SystemMessage
 
 # Load environment variables from the .env file
 load_dotenv()
 
-# Get the API key from the environment variable
-api_key = os.getenv("OPENAI_API_KEY")
+# Now the environment variables are available
+tracing_enabled = os.getenv("LANGCHAIN_TRACING_V2")
+langchain_api_key = os.getenv("LANGCHAIN_API_KEY")
+openai_api_key = os.getenv("OPENAI_API_KEY")
 
-# Initialize the OpenAI language model
-llm = OpenAI(api_key=api_key)
+# Set the OPENAI_API_KEY environment variable
+os.environ["OPENAI_API_KEY"] = openai_api_key
 
-# Define a custom prompt for summarizing news
-prompt = PromptTemplate(
-    template="Summarize the following news article:\n\n{text}\n\nSummary:",
-    input_variables=["text"]
+# Initialize the model
+model = ChatOpenAI(model="gpt-4")
+
+# Define the system template for the prompt
+system_template = "Provide one random news headline from {country}."
+
+# Create the prompt template
+prompt_template = ChatPromptTemplate.from_messages(
+    [("system", system_template), ("user", "")]
 )
 
-# Define a simple chain for summarizing news
-class NewsSummaryChain(LLMChain):
-    def __init__(self, llm, prompt):
-        super().__init__(llm=llm, prompt=prompt)
+# Create the output parser
+parser = StrOutputParser()
 
-# Create an instance of the chain
-summary_chain = NewsSummaryChain(llm=llm, prompt=prompt)
+# Combine the prompt template, model, and parser into a chain
+chain = prompt_template | model | parser
 
-# Function to simulate reading news (you can replace this with actual news reading logic)
-def read_news():
-    return "Your news article text here."
+# Define the input variables for the prompt
+input_vars = {"country": "Lithuania"}
 
-# Run the chain with a news article
-news_article = read_news()
-summary = summary_chain.invoke({"text": news_article})
-print("News Summary:")
-print(summary)
+# Invoke the chain with the input variables
+response = chain.invoke(input_vars)
+
+# Print the simplified response
+print(response)
