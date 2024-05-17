@@ -5,6 +5,7 @@ __pycache__/
 *.pyc
 *.pyo
 *.pyd
+rss_scraper.log
 weekly_news/*
 !weekly_news/
 !weekly_news/.gitkeep
