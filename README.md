@@ -4,15 +4,43 @@ This script scrapes news articles from RSS feeds, leverages AI to analyze and hi
 
 ## Setup
 
-1. Clone the repository.
-2. Create a virtual environment and activate it:
+### First-Time Setup
+
+1. **Clone the repository**:
+    ```sh
+    git clone https://github.com/yourusername/your-repo-name.git
+    cd your-repo-name
+    ```
+
+2. **Create a virtual environment and activate it**:
     ```sh
     python3 -m venv langchain_env
     source langchain_env/bin/activate
     ```
-3. Install the dependencies:
+
+3. **Install the dependencies**:
     ```sh
     pip install -r requirements.txt
+    ```
+
+4. **Edit the configuration file if necessary**:
+    The configuration file `src/config.json` is already tracked in Git. You can edit it to customize the categories, base folder, retry count, and retry delay.
+
+### Regular Usage
+
+1. **Activate the virtual environment**:
+    ```sh
+    source langchain_env/bin/activate
+    ```
+
+2. **Run the RSS scraper**:
+    ```sh
+    python src/rss_scraper.py --config src/config.json
+    ```
+
+3. **(Optional) Run unit tests**:
+    ```sh
+    python -m unittest discover tests
     ```
 
 ## Configuration
