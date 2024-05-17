@@ -8,8 +8,8 @@ This script scrapes news articles from RSS feeds, leverages AI to analyze and hi
 
 1. **Clone the repository**:
     ```sh
-    git clone https://github.com/yourusername/your-repo-name.git
-    cd your-repo-name
+    git clone https://github.com/masikonis/ai-news-digest.git
+    cd news-digest
     ```
 
 2. **Create a virtual environment and activate it**:
