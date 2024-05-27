@@ -58,6 +58,7 @@ Edit the `src/config.json` file with the following structure if necessary:
     "retry_count": 3,
     "retry_delay": 2
 }
+```
 
 ## Automating with Launchd
 
