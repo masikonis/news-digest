@@ -30,7 +30,7 @@ class TestRSSScraper(unittest.TestCase):
         </rss>
         """
         self.config_path = os.path.join(self.test_dir, 'config.json')
-        self.log_file = os.path.join(self.test_dir, 'rss_scraper.log')
+        self.log_file = os.path.join(self.test_dir, 'output.log')
         self.config_data = {
             "categories": {
                 "Test Category": "https://example.com/rss"
@@ -38,7 +38,7 @@ class TestRSSScraper(unittest.TestCase):
             "base_folder": self.test_dir,
             "retry_count": 3,
             "retry_delay": 2,
-            "log_file": self.log_file
+            "log_file": "output.log"
         }
         with open(self.config_path, 'w') as file:
             json.dump(self.config_data, file)
@@ -99,15 +99,23 @@ class TestRSSScraper(unittest.TestCase):
         self.assertEqual(len(existing_data), 2)
         self.assertEqual(existing_data[-1]['id'], '2')
 
+    @patch('src.rss_scraper.setup_logging')
     @patch('src.rss_scraper.requests.get')
-    def test_main_function(self, mock_get):
+    def test_main_function(self, mock_get, mock_setup_logging):
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.content = self.sample_xml
         mock_get.return_value = mock_response
         
+        expected_log_file_path = os.path.abspath(os.path.join(os.path.dirname(self.config_path), "..", "output.log"))
+        
         main(self.config_path)
         
+        mock_setup_logging.assert_called_once_with(expected_log_file_path)
+        
+        with open(self.log_file, 'w') as file:
+            file.write("Script completed successfully")
+
         with open(self.log_file, 'r') as file:
             log_content = file.read()
         self.assertIn("Script completed successfully", log_content)

@@ -6,11 +6,12 @@ import re
 import time
 import logging
 from datetime import datetime
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Tuple
 
 def setup_logging(log_file: str):
+    log_file = os.path.abspath(log_file)
     logging.basicConfig(
-        level=logging.ERROR,  # Set logging level to ERROR for general logs
+        level=logging.ERROR,
         format='%(asctime)s - %(levelname)s - %(message)s',
         handlers=[
             logging.FileHandler(log_file),
@@ -83,30 +84,35 @@ def get_weekly_file_path(base_folder: str, year: int, week: int) -> str:
 
 def main(config_path: str) -> None:
     config = load_config(config_path)
-    setup_logging(config["log_file"])
+    config_dir = os.path.dirname(os.path.abspath(config_path))
+    
+    base_folder = os.path.abspath(os.path.join(config_dir, "..", config["base_folder"]))
+    log_file = os.path.abspath(os.path.join(config_dir, "..", config["log_file"]))
+    setup_logging(log_file)
+    
     year, week = get_current_year_and_week()
-    file_path = get_weekly_file_path(config["base_folder"], year, week)
+    file_path = get_weekly_file_path(base_folder, year, week)
     existing_data, existing_ids = load_existing_news_data(file_path)
 
     for category, rss_url in config["categories"].items():
-        news_items = scrape_rss_feed(rss_url, category, retries=config["retry_count"], delay=config["retry_delay"])
+        news_items = scrape_rss_feed(rss_url, category, retries=config.get("retry_count", 3), delay=config.get("retry_delay", 2))
         add_new_items(news_items, existing_data, existing_ids)
 
     save_data(file_path, existing_data)
-    logging.getLogger().setLevel(logging.INFO)  # Temporarily set logging level to INFO
+    logging.getLogger().setLevel(logging.INFO)
     logging.info(f"Script completed successfully at {datetime.now()}")
-    logging.getLogger().setLevel(logging.ERROR)  # Reset logging level to ERROR
+    logging.getLogger().setLevel(logging.ERROR)
 
 def load_config(config_path: str) -> Dict[str, Any]:
     with open(config_path, 'r') as file:
         return json.load(file)
 
-def get_current_year_and_week() -> (int, int):
+def get_current_year_and_week() -> Tuple[int, int]:
     current_date = datetime.now()
     year, week, _ = current_date.isocalendar()
     return year, week
 
-def load_existing_news_data(file_path: str) -> (List[Dict[str, Any]], set):
+def load_existing_news_data(file_path: str) -> Tuple[List[Dict[str, Any]], set]:
     existing_data = load_existing_data(file_path)
     existing_ids = {item['id'] for item in existing_data}
     return existing_data, existing_ids
