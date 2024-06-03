@@ -1,5 +1,7 @@
 # AI News Digest
 
+[![codecov](https://codecov.io/gh/masikonis/ai-news-digest/branch/main/graph/badge.svg)](https://codecov.io/gh/masikonis/ai-news-digest)
+
 This script scrapes news articles from RSS feeds, leverages AI to analyze and highlight the most significant stories, and delivers a concise summary via email.
 
 ## Setup
@@ -56,7 +58,8 @@ Edit the `src/config.json` file with the following structure if necessary:
     },
     "base_folder": "weekly_news",
     "retry_count": 3,
-    "retry_delay": 2
+    "retry_delay": 2,
+    "log_file": "output.log"
 }
 ```
 
@@ -65,4 +68,18 @@ Edit the `src/config.json` file with the following structure if necessary:
 You can automate the RSS scraper to run every hour on a Mac using a `plist` file with `launchd`.
 
 Refer to the `example-com.example.news-digest-rss-scraper.plist` file in the repository for the setup.
+
+## Test Coverage
+
+### Run Tests with Coverage
+
+1. **Run the tests with coverage**:
+    ```sh
+    coverage run -m unittest discover -s tests
+    ```
+
+2. **Generate a coverage report**:
+    ```sh
+    coverage report -m
+    ```
 
