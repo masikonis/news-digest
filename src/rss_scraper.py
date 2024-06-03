@@ -14,8 +14,7 @@ def setup_logging(log_file: str):
         level=logging.ERROR,
         format='%(asctime)s - %(levelname)s - %(message)s',
         handlers=[
-            logging.FileHandler(log_file),
-            logging.StreamHandler()
+            logging.FileHandler(log_file)
         ]
     )
 

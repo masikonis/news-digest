@@ -60,9 +60,13 @@ class TestRSSScraper(unittest.TestCase):
         self.assertEqual(data, self.sample_data)
 
     def test_clean_html(self):
-        raw_html = "<p>This is a <b>test</b> description.</p>"
-        expected_text = "This is a test description."
-        self.assertEqual(clean_html(raw_html), expected_text)
+        test_cases = [
+            ("<p>This is a <b>test</b> description.</p>", "This is a test description."),
+            ("<div><p>Another <a href='#'>link</a></p></div>", "Another link")
+        ]
+        for raw_html, expected_text in test_cases:
+            with self.subTest(raw_html=raw_html):
+                self.assertEqual(clean_html(raw_html), expected_text)
 
     def test_parse_rss_feed(self):
         expected_output = [{'id': '1', 'title': 'Test Title', 'description': 'Test Description', 'category': 'Test Category', 'pub_date': 'Test Date'}]
@@ -77,11 +81,11 @@ class TestRSSScraper(unittest.TestCase):
         config = load_config(self.config_path)
         self.assertEqual(config, self.config_data)
 
-    def test_get_current_year_and_week(self):
-        current_date = datetime.now()
-        year, week, _ = current_date.isocalendar()
-        test_year, test_week = get_current_year_and_week()
-        self.assertEqual((test_year, test_week), (year, week))
+    @patch('src.rss_scraper.datetime')
+    def test_get_current_year_and_week(self, mock_datetime):
+        mock_datetime.now.return_value = datetime(2024, 5, 20)
+        year, week = get_current_year_and_week()
+        self.assertEqual((year, week), (2024, 21))
 
     def test_load_existing_news_data(self):
         with open(self.test_file, 'w') as file:
