@@ -10,13 +10,13 @@ from typing import List, Dict, Any, Tuple
 
 def setup_logging(log_file: str):
     log_file = os.path.abspath(log_file)
+    handler = logging.FileHandler(log_file)
     logging.basicConfig(
         level=logging.ERROR,
         format='%(asctime)s - %(levelname)s - %(message)s',
-        handlers=[
-            logging.FileHandler(log_file)
-        ]
+        handlers=[handler]
     )
+    handler.close()
 
 def load_existing_data(file_path: str) -> List[Dict[str, Any]]:
     if os.path.exists(file_path):
@@ -125,10 +125,12 @@ def add_new_items(news_items: List[Dict[str, str]], existing_data: List[Dict[str
             new_items_count += 1
     return new_items_count
 
-if __name__ == "__main__":
+def run():
     import argparse
-
     parser = argparse.ArgumentParser(description="RSS Scraper for Weekly News")
     parser.add_argument('--config', type=str, default='src/config.json', help='Path to the configuration file')
     args = parser.parse_args()
     main(args.config)
+
+if __name__ == "__main__":
+    run()
