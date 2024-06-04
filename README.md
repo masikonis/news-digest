@@ -4,7 +4,7 @@
 
 This script scrapes news articles from RSS feeds, leverages AI to analyze and highlight the most significant stories, and delivers a concise summary via email.
 
-## Setup
+## Setup & Usage
 
 ### First-Time Setup
 
