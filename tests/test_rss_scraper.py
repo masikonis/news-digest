@@ -4,7 +4,8 @@ from src.rss_scraper import (
     load_existing_data, save_data, clean_html, parse_rss_feed, 
     get_weekly_file_path, load_config, get_current_year_and_week, 
     load_existing_news_data, add_new_items, setup_logging, main,
-    scrape_rss_feed, handle_request_exception, run, parse_rss_item
+    scrape_rss_feed, handle_request_exception, run, parse_rss_item,
+    fetch_rss_feed
 )
 import os
 import json
@@ -92,10 +93,34 @@ class TestRSSScraper(unittest.TestCase):
         }
         self.assertEqual(result, expected_result)
 
+    def test_parse_rss_item_no_pub_date(self):
+        item = ET.Element('item')
+        ET.SubElement(item, 'title').text = 'Test Title'
+        ET.SubElement(item, 'description').text = '<p>Test Description</p>'
+        ET.SubElement(item, 'guid').text = '1'
+        
+        result = parse_rss_item(item, 'Test Category')
+        expected_result = {
+            'id': '1',
+            'title': 'Test Title',
+            'description': 'Test Description',
+            'category': 'Test Category',
+            'pub_date': None
+        }
+        self.assertEqual(result, expected_result)
+
     def test_get_weekly_file_path(self):
         year, week = 2024, 20
         expected_path = os.path.join(self.test_dir, 'news_2024_20.json')
         self.assertEqual(get_weekly_file_path(self.test_dir, year, week), expected_path)
+
+    def test_get_weekly_file_path_creates_folder(self):
+        year, week = 2024, 20
+        base_folder = os.path.join(self.test_dir, 'non_existent_folder')
+        expected_path = os.path.join(base_folder, 'news_2024_20.json')
+        result_path = get_weekly_file_path(base_folder, year, week)
+        self.assertTrue(os.path.exists(base_folder))
+        self.assertEqual(result_path, expected_path)
 
     def test_load_config(self):
         config = load_config(self.config_path)
@@ -122,6 +147,14 @@ class TestRSSScraper(unittest.TestCase):
         self.assertEqual(added_count, 1)
         self.assertEqual(len(existing_data), 2)
         self.assertEqual(existing_data[-1]['id'], '2')
+
+    def test_add_new_items_existing_id(self):
+        new_items = [{'id': '1', 'title': 'Duplicate Title', 'description': 'Duplicate Description', 'category': 'Test Category', 'pub_date': 'Duplicate Date'}]
+        existing_data = self.sample_data.copy()
+        existing_ids = {'1'}
+        added_count = add_new_items(new_items, existing_data, existing_ids)
+        self.assertEqual(added_count, 0)
+        self.assertEqual(len(existing_data), 1)
 
     @patch('src.rss_scraper.setup_logging')
     @patch('src.rss_scraper.requests.get')
@@ -209,6 +242,14 @@ class TestRSSScraper(unittest.TestCase):
             run()
             mock_main.assert_called_once_with('test_data/config.json')
 
+    @patch('requests.get')
+    def test_fetch_rss_feed_exception(self, mock_get):
+        with self.suppress_logging():
+            mock_get.side_effect = requests.RequestException("Network error")
+            with self.assertRaises(requests.RequestException):
+                fetch_rss_feed("http://example.com/rss", {"User-Agent": "test-agent"})
+            mock_get.assert_called_once()
+
     # Context manager to suppress logging
     from contextlib import contextmanager
     @contextmanager
@@ -221,3 +262,4 @@ class TestRSSScraper(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
