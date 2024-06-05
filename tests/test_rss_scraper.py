@@ -11,8 +11,8 @@ import json
 from datetime import datetime
 import shutil
 import requests
-import xml.etree.ElementTree as ET  # Importing ET
-import logging  # Importing logging
+import xml.etree.ElementTree as ET
+import logging
 
 class TestRSSScraper(unittest.TestCase):
 
@@ -126,33 +126,35 @@ class TestRSSScraper(unittest.TestCase):
     @patch('src.rss_scraper.setup_logging')
     @patch('src.rss_scraper.requests.get')
     def test_main_function(self, mock_get, mock_setup_logging):
-        mock_response = MagicMock()
-        mock_response.status_code = 200
-        mock_response.content = self.sample_xml
-        mock_get.return_value = mock_response
-        
-        expected_log_file_path = os.path.abspath(os.path.join(os.path.dirname(self.config_path), "..", "output.log"))
-        
-        main(self.config_path)
-        
-        mock_setup_logging.assert_called_once_with(expected_log_file_path)
-        
-        with open(self.log_file, 'w') as file:
-            file.write("Script completed successfully")
+        with self.suppress_logging():
+            mock_response = MagicMock()
+            mock_response.status_code = 200
+            mock_response.content = self.sample_xml
+            mock_get.return_value = mock_response
 
-        with open(self.log_file, 'r') as file:
-            log_content = file.read()
-        self.assertIn("Script completed successfully", log_content)
+            expected_log_file_path = os.path.abspath(os.path.join(os.path.dirname(self.config_path), "..", "output.log"))
+
+            main(self.config_path)
+
+            mock_setup_logging.assert_called_once_with(expected_log_file_path)
+
+            with open(self.log_file, 'w') as file:
+                file.write("Script completed successfully")
+
+            with open(self.log_file, 'r') as file:
+                log_content = file.read()
+            self.assertIn("Script completed successfully", log_content)
 
     @patch('src.rss_scraper.logging.getLogger')
     def test_main_logging_level(self, mock_get_logger):
-        logger = MagicMock()
-        mock_get_logger.return_value = logger
-        
-        main(self.config_path)
-        
-        logger.setLevel.assert_any_call(logging.INFO)
-        logger.setLevel.assert_any_call(logging.ERROR)
+        with self.suppress_logging():
+            logger = MagicMock()
+            mock_get_logger.return_value = logger
+
+            main(self.config_path)
+
+            logger.setLevel.assert_any_call(logging.INFO)
+            logger.setLevel.assert_any_call(logging.ERROR)
 
     def test_setup_logging(self):
         log_file = os.path.join(self.test_dir, 'test.log')
@@ -162,45 +164,60 @@ class TestRSSScraper(unittest.TestCase):
     @patch('src.rss_scraper.fetch_rss_feed')
     @patch('src.rss_scraper.handle_request_exception')
     def test_scrape_rss_feed_retries(self, mock_handle_request_exception, mock_fetch_rss_feed):
-        mock_fetch_rss_feed.side_effect = requests.RequestException("Network error")
-        result = scrape_rss_feed("http://example.com/rss", "Test Category", retries=2, delay=1)
-        self.assertEqual(result, [])
-        self.assertEqual(mock_handle_request_exception.call_count, 2)
+        with self.suppress_logging():
+            mock_fetch_rss_feed.side_effect = requests.RequestException("Network error")
+            result = scrape_rss_feed("http://example.com/rss", "Test Category", retries=2, delay=1)
+            self.assertEqual(result, [])
+            self.assertEqual(mock_handle_request_exception.call_count, 2)
 
     @patch('src.rss_scraper.fetch_rss_feed', side_effect=requests.RequestException("Network error"))
     @patch('src.rss_scraper.handle_request_exception')
     def test_scrape_rss_feed_exception(self, mock_handle_request_exception, mock_fetch_rss_feed):
-        result = scrape_rss_feed("http://example.com/rss", "Test Category", retries=1, delay=1)
-        self.assertEqual(result, [])
-        mock_handle_request_exception.assert_called_once()
-        called_args, called_kwargs = mock_handle_request_exception.call_args
-        self.assertIsInstance(called_args[0], requests.RequestException)
-        self.assertEqual(called_args[1], "http://example.com/rss")
-        self.assertEqual(called_args[2], 0)
-        self.assertEqual(called_args[3], 1)
-        self.assertEqual(called_args[4], 1)
+        with self.suppress_logging():
+            result = scrape_rss_feed("http://example.com/rss", "Test Category", retries=1, delay=1)
+            self.assertEqual(result, [])
+            mock_handle_request_exception.assert_called_once()
+            called_args, called_kwargs = mock_handle_request_exception.call_args
+            self.assertIsInstance(called_args[0], requests.RequestException)
+            self.assertEqual(called_args[1], "http://example.com/rss")
+            self.assertEqual(called_args[2], 0)
+            self.assertEqual(called_args[3], 1)
+            self.assertEqual(called_args[4], 1)
 
     @patch('src.rss_scraper.logging')
     @patch('src.rss_scraper.time.sleep', return_value=None)
     def test_handle_request_exception_retry(self, mock_sleep, mock_logging):
-        e = requests.RequestException("Network error")
-        handle_request_exception(e, "http://example.com/rss", 0, 2, 1)
-        mock_logging.error.assert_called_with("Error fetching http://example.com/rss: Network error")
-        mock_logging.info.assert_called_with("Retrying in 1 seconds...")
-        mock_sleep.assert_called_with(1)
+        with self.suppress_logging():
+            e = requests.RequestException("Network error")
+            handle_request_exception(e, "http://example.com/rss", 0, 2, 1)
+            mock_logging.error.assert_called_with("Error fetching http://example.com/rss: Network error")
+            mock_logging.info.assert_called_with("Retrying in 1 seconds...")
+            mock_sleep.assert_called_with(1)
 
     @patch('src.rss_scraper.logging')
     def test_handle_request_exception_fail(self, mock_logging):
-        e = requests.RequestException("Network error")
-        handle_request_exception(e, "http://example.com/rss", 1, 2, 1)
-        mock_logging.error.assert_any_call("Error fetching http://example.com/rss: Network error")
-        mock_logging.error.assert_any_call("Failed to fetch http://example.com/rss after 2 attempts")
+        with self.suppress_logging():
+            e = requests.RequestException("Network error")
+            handle_request_exception(e, "http://example.com/rss", 1, 2, 1)
+            mock_logging.error.assert_any_call("Error fetching http://example.com/rss: Network error")
+            mock_logging.error.assert_any_call("Failed to fetch http://example.com/rss after 2 attempts")
 
     @patch('sys.argv', ['rss_scraper.py', '--config', 'test_data/config.json'])
     @patch('src.rss_scraper.main')
     def test_run(self, mock_main):
-        run()
-        mock_main.assert_called_once_with('test_data/config.json')
+        with self.suppress_logging():
+            run()
+            mock_main.assert_called_once_with('test_data/config.json')
+
+    # Context manager to suppress logging
+    from contextlib import contextmanager
+    @contextmanager
+    def suppress_logging(self):
+        logging.disable(logging.CRITICAL)
+        try:
+            yield
+        finally:
+            logging.disable(logging.NOTSET)
 
 if __name__ == "__main__":
     unittest.main()
