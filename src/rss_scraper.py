@@ -82,7 +82,6 @@ def get_weekly_file_path(base_folder: str, year: int, week: int) -> str:
     return os.path.join(base_folder, f'news_{year}_{week:02}.json')
 
 def main(config_path: str) -> None:
-    print(f"Main function called with config_path: {config_path}")
     config = load_config(config_path)
     config_dir = os.path.dirname(os.path.abspath(config_path))
     
@@ -127,7 +126,6 @@ def add_new_items(news_items: List[Dict[str, str]], existing_data: List[Dict[str
     return new_items_count
 
 def run():
-    print("Run function called")
     import argparse
     parser = argparse.ArgumentParser(description="RSS Scraper for Weekly News")
     parser.add_argument('--config', type=str, default='src/config.json', help='Path to the configuration file')
@@ -135,6 +133,5 @@ def run():
     main(args.config)
 
 if __name__ == "__main__":
-    print("Running as main")
     run()
 

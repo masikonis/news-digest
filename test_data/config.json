@@ -1,0 +1,1 @@
+{"categories": {"Test Category": "https://example.com/rss"}, "base_folder": "test_data", "retry_count": 3, "retry_delay": 2, "log_file": "output.log"}
