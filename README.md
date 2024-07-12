@@ -82,4 +82,3 @@ Refer to the `example-com.example.news-digest-rss-scraper.plist` file in the rep
     ```sh
     coverage report -m
     ```
-

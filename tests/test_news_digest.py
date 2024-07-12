@@ -1,3 +1,4 @@
+# tests/test_news_digest.py
 import unittest
 from unittest.mock import patch, MagicMock
 

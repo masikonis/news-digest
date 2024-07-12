@@ -1,3 +1,4 @@
+# src/rss_scraper.py
 import json
 import os
 import requests
@@ -7,16 +8,7 @@ import time
 import logging
 from datetime import datetime
 from typing import List, Dict, Any, Tuple
-
-def setup_logging(log_file: str):
-    log_file = os.path.abspath(log_file)
-    handler = logging.FileHandler(log_file)
-    logging.basicConfig(
-        level=logging.ERROR,
-        format='%(asctime)s - %(levelname)s - %(message)s',
-        handlers=[handler]
-    )
-    handler.close()
+from news_digest import setup_logging
 
 def load_existing_data(file_path: str) -> List[Dict[str, Any]]:
     if os.path.exists(file_path):
