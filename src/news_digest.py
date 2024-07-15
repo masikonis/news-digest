@@ -27,7 +27,7 @@ def generate_email_content(summaries: Dict[str, str], week_number: int) -> str:
 def send_email(subject: str, html_content: str) -> None:
     url = f"https://api.mailgun.net/v3/{mailgun_domain}/messages"
     data = {
-        "from": f"News Digest <mailgun@{mailgun_domain}>",
+        "from": f"Nerijus Masikonis <nerijus@masikonis.lt>",
         "to": [recipient_email],
         "subject": subject,
         "html": html_content,
@@ -56,7 +56,7 @@ def main():
     email_content = generate_email_content(summaries, week_number)
 
     # Send email
-    subject = f"Naujienos ({week_number} savaitė)"
+    subject = f"Savaitės naujienų apžvalga"
     send_email(subject, email_content)
 
 if __name__ == "__main__":
