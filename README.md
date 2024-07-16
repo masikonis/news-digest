@@ -42,7 +42,7 @@ This script scrapes news articles from RSS feeds, leverages AI to analyze and hi
 
 3. **(Optional) Run unit tests**:
     ```sh
-    python -m unittest discover tests
+    PYTHONPATH=src python -m unittest discover tests
     ```
 
 ## Configuration
@@ -76,7 +76,7 @@ Refer to the `example-com.example.news-digest-rss-scraper.plist` file in the rep
 
 1. **Run the tests with coverage**:
     ```sh
-    coverage run -m unittest discover -s tests
+    PYTHONPATH=src coverage run -m unittest discover -s tests
     ```
 
 2. **Generate a coverage report**:

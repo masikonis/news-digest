@@ -8,7 +8,7 @@ import time
 import logging
 from datetime import datetime, timedelta
 from typing import List, Dict, Any, Tuple
-from news_digest import setup_logging
+from utils import setup_logging
 
 try:
     from zoneinfo import ZoneInfo
