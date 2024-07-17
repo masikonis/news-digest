@@ -43,11 +43,26 @@ def generate_summary(news_items: List[Dict[str, Any]]) -> str:
 
 def generate_summaries_by_category(config_path: str) -> Dict[str, str]:
     config = load_config(config_path)
-    setup_logging(config.get("log_file"))
+    config_dir = os.path.dirname(os.path.abspath(config_path))
+    root_dir = os.path.abspath(os.path.join(config_dir, ".."))
+    log_file = os.path.join(root_dir, config.get("log_file", "output.log"))
+    log_dir = os.path.dirname(log_file)
+    print(f"Log file in summary_generator: {log_file}")
+    print(f"Log directory in summary_generator: {log_dir}")
+    print(f"Config directory: {config_dir}")
+    print(f"Root directory: {root_dir}")
+    
+    if log_dir and not os.path.exists(log_dir):
+        os.makedirs(log_dir)
+        
+    setup_logging(log_file)
+
+    base_folder = os.path.join(root_dir, config.get("base_folder", "weekly_news"))
+    print(f"Base folder: {base_folder}")
 
     summaries_by_category = {}
     try:
-        latest_file = get_latest_json_file(config["base_folder"])
+        latest_file = get_latest_json_file(base_folder)
         logging.info(f"Latest JSON file: {latest_file}")
 
         news_data = read_json_file(latest_file)

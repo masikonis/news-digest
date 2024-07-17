@@ -1,17 +1,22 @@
 # src/utils.py
-import os
-import json
 import logging
-from typing import Dict, Any
+import os
 
-def setup_logging(log_file: str) -> None:
-    log_file = os.path.abspath(log_file)
+def setup_logging(log_file: str):
+    log_dir = os.path.dirname(log_file)
+    if not os.path.exists(log_dir):
+        os.makedirs(log_dir)
+        
     logging.basicConfig(
-        filename=log_file,
         level=logging.INFO,
-        format='%(asctime)s - %(levelname)s - %(message)s',
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        handlers=[
+            logging.FileHandler(log_file),
+            logging.StreamHandler()
+        ]
     )
 
-def load_config(config_path: str) -> Dict[str, Any]:
+def load_config(config_path: str) -> dict:
+    import json
     with open(config_path, 'r') as file:
         return json.load(file)

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.example.news-digest-rss-scraper</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/path/to/your/python3</string>
+        <string>/path/to/your/rss_scraper.py</string>
+        <string>--config</string>
+        <string>/path/to/your/config.json</string>
+    </array>
+    <key>StartInterval</key>
+    <integer>3600</integer>
+    <key>StandardOutPath</key>
+    <string>/path/to/your/output.log</string>
+    <key>StandardErrorPath</key>
+    <string>/path/to/your/error.log</string>
+</dict>
+</plist>
