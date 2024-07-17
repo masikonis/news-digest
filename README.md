@@ -4,29 +4,11 @@
 
 This script scrapes news articles from RSS feeds, leverages AI to analyze and highlight the most significant stories, and delivers a concise summary via email.
 
+## Rationale
+
+This app was built as a way to fight news addiction. Since I stopped checking the news regularly, I needed a way to still keep up to date with the latest news so that I do not live under a rock. Instead of spending 2 hours per day, I receive a summary each Sunday evening that I can read in 10 minutes. This results in massive time savings.
+
 ## Setup & Usage
-
-### First-Time Setup
-
-1. **Clone the repository**:
-    ```sh
-    git clone https://github.com/masikonis/ai-news-digest.git
-    cd news-digest
-    ```
-
-2. **Create a virtual environment and activate it**:
-    ```sh
-    python3 -m venv langchain_env
-    source langchain_env/bin/activate
-    ```
-
-3. **Install the dependencies**:
-    ```sh
-    pip install -r requirements.txt
-    ```
-
-4. **Edit the configuration file if necessary**:
-    The configuration file `src/config.json` is already tracked in Git. You can edit it to customize the categories, base folder, retry count, and retry delay.
 
 ### Regular Usage
 
@@ -35,14 +17,14 @@ This script scrapes news articles from RSS feeds, leverages AI to analyze and hi
     source langchain_env/bin/activate
     ```
 
-2. **Run the RSS scraper**:
+2. **(Optional) Run the tests with coverage**:
     ```sh
-    python src/rss_scraper.py --config src/config.json
+    PYTHONPATH=src coverage run -m unittest discover -s tests
     ```
 
-3. **(Optional) Run unit tests**:
+3. **(Optional) Generate a coverage report**:
     ```sh
-    PYTHONPATH=src python -m unittest discover tests
+    coverage report -m
     ```
 
 ## Configuration
@@ -69,17 +51,3 @@ Edit the `src/config.json` file with the following structure if necessary:
 You can automate the RSS scraper to run every hour on a Mac using a `plist` file with `launchd`.
 
 Refer to the `example-com.example.news-digest-rss-scraper.plist` file in the repository for the setup.
-
-## Test Coverage
-
-### Run Tests with Coverage
-
-1. **Run the tests with coverage**:
-    ```sh
-    PYTHONPATH=src coverage run -m unittest discover -s tests
-    ```
-
-2. **Generate a coverage report**:
-    ```sh
-    coverage report -m
-    ```
