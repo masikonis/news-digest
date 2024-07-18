@@ -15,7 +15,5 @@
     <integer>3600</integer>
     <key>StandardOutPath</key>
     <string>/path/to/your/output.log</string>
-    <key>StandardErrorPath</key>
-    <string>/path/to/your/error.log</string>
 </dict>
 </plist>

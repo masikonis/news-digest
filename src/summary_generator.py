@@ -47,10 +47,6 @@ def generate_summaries_by_category(config_path: str) -> Dict[str, str]:
     root_dir = os.path.abspath(os.path.join(config_dir, ".."))
     log_file = os.path.join(root_dir, config.get("log_file", "output.log"))
     log_dir = os.path.dirname(log_file)
-    print(f"Log file in summary_generator: {log_file}")
-    print(f"Log directory in summary_generator: {log_dir}")
-    print(f"Config directory: {config_dir}")
-    print(f"Root directory: {root_dir}")
     
     if log_dir and not os.path.exists(log_dir):
         os.makedirs(log_dir)
@@ -58,7 +54,6 @@ def generate_summaries_by_category(config_path: str) -> Dict[str, str]:
     setup_logging(log_file)
 
     base_folder = os.path.join(root_dir, config.get("base_folder", "weekly_news"))
-    print(f"Base folder: {base_folder}")
 
     summaries_by_category = {}
     try:

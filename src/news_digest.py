@@ -47,8 +47,6 @@ def main(config_path: str):
     root_dir = os.path.abspath(os.path.join(config_dir, ".."))
     log_file = os.path.join(root_dir, config.get("log_file", "output.log"))
     log_dir = os.path.dirname(log_file)
-    print(f"Log file: {log_file}")
-    print(f"Log directory: {log_dir}")
     if not os.path.exists(log_dir):
         os.makedirs(log_dir)
         
