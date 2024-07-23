@@ -51,5 +51,3 @@ Edit the `src/config.json` file with the following structure if necessary:
 You can automate the RSS scraper to run every hour on a Mac using a `plist` file with `launchd`.
 
 The .plist files required for this Python application are stored in the `~/Library/LaunchAgents/` directory.
-
-Refer to the `example-com.example.news-digest-rss-scraper.plist` file in the repository for the setup.
