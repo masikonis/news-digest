@@ -11,11 +11,16 @@
         <string>--config</string>
         <string>/path/to/your/config.json</string>
     </array>
-    <key>StartInterval</key>
-    <integer>3600</integer>
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Weekday</key>
+        <integer>1</integer> <!-- 1 = Sunday -->
+        <key>Hour</key>
+        <integer>19</integer>
+        <key>Minute</key>
+        <integer>0</integer>
+    </dict>
     <key>StandardOutPath</key>
-    <string>/path/to/your/output.log</string>
-    <key>StandardErrorPath</key>
-    <string>/path/to/your/error.log</string>
+    <string>/Users/nerijus/Python/masikonis/news-digest/output.log</string>
 </dict>
 </plist>
