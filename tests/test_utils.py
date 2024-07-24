@@ -1,54 +1,50 @@
-import unittest
 import os
-import tempfile
-import json
+import unittest
 import logging
-from unittest.mock import patch
+from unittest.mock import patch, mock_open, MagicMock
 from src.utils import setup_logging, load_config
 
 class TestUtils(unittest.TestCase):
+    
+    @patch("os.makedirs")
+    @patch("os.path.exists", return_value=False)
+    @patch("logging.FileHandler")
+    @patch("logging.basicConfig")
+    def test_setup_logging_creates_directory(self, mock_basicConfig, mock_fileHandler, mock_exists, mock_makedirs):
+        log_file = "test_logs/test.log"
+        setup_logging(log_file)
+        mock_exists.assert_called_once_with("test_logs")
+        mock_makedirs.assert_called_once_with("test_logs")
+        mock_fileHandler.assert_called_once_with(log_file)
+        mock_basicConfig.assert_called_once()
 
-    def test_setup_logging(self):
-        with tempfile.TemporaryDirectory() as temp_dir:
-            log_file = os.path.join(temp_dir, 'test.log')
-            setup_logging(log_file)
-            
-            # Check if the log file is created
-            self.assertTrue(os.path.exists(log_file))
-            
-            # Check if logging works
-            logger = logging.getLogger('test_logger')
-            handler = logging.FileHandler(log_file)
-            logger.addHandler(handler)
-            logger.setLevel(logging.INFO)
-            logger.info('This is a test log message')
-            
-            # Ensure all log messages are flushed and the file is closed
-            handler.flush()
-            handler.close()
-            
-            logging.shutdown()  # Ensure all log messages are flushed
+    @patch("os.path.exists", return_value=True)
+    @patch("logging.FileHandler")
+    @patch("logging.basicConfig")
+    def test_setup_logging_existing_directory(self, mock_basicConfig, mock_fileHandler, mock_exists):
+        log_file = "test_logs/test.log"
+        setup_logging(log_file)
+        mock_exists.assert_called_once_with("test_logs")
+        mock_fileHandler.assert_called_once_with(log_file)
+        mock_basicConfig.assert_called_once()
 
-            with open(log_file, 'r') as f:
-                log_content = f.read()
-            
-            self.assertIn('This is a test log message', log_content)
+    @patch("builtins.open", new_callable=mock_open, read_data='{"key": "value"}')
+    def test_load_config_valid_json(self, mock_file):
+        config_path = "config.json"
+        config = load_config(config_path)
+        mock_file.assert_called_once_with(config_path, 'r')
+        self.assertEqual(config, {"key": "value"})
 
-    def test_load_config(self):
-        config_data = {
-            "key1": "value1",
-            "key2": "value2"
-        }
-        
-        with tempfile.NamedTemporaryFile(delete=False, mode='w', suffix='.json') as temp_config_file:
-            json.dump(config_data, temp_config_file)
-            temp_config_file_path = temp_config_file.name
+    @patch("builtins.open", new_callable=mock_open)
+    def test_load_config_file_not_found(self, mock_file):
+        mock_file.side_effect = FileNotFoundError
+        with self.assertRaises(FileNotFoundError):
+            load_config("nonexistent.json")
 
-        try:
-            loaded_config = load_config(temp_config_file_path)
-            self.assertEqual(loaded_config, config_data)
-        finally:
-            os.remove(temp_config_file_path)
+    @patch("builtins.open", new_callable=mock_open, read_data='invalid json')
+    def test_load_config_invalid_json(self, mock_file):
+        with self.assertRaises(ValueError):
+            load_config("invalid.json")
 
 if __name__ == "__main__":
     unittest.main()
