@@ -8,7 +8,8 @@ from src.summary_generator import (
     read_json_file,
     sort_by_category,
     generate_summary,
-    generate_summaries_by_category
+    generate_summaries_by_category,
+    main  # Importing the new main function
 )
 
 class TestSummaryGenerator(unittest.TestCase):
@@ -129,6 +130,20 @@ class TestSummaryGenerator(unittest.TestCase):
 
         self.assertEqual(result, {})
         mock_logging_error.assert_called_once_with("An unexpected error occurred: Unexpected error")
+
+    @patch('builtins.print')
+    @patch('src.summary_generator.generate_summaries_by_category')
+    def test_main(self, mock_generate_summaries_by_category, mock_print):
+        mock_generate_summaries_by_category.return_value = {
+            "Politics": "Politics summary",
+            "Technology": "Technology summary"
+        }
+
+        main("src/config.json")
+
+        mock_generate_summaries_by_category.assert_called_once_with("src/config.json")
+        mock_print.assert_any_call("\nPolitics\nPolitics summary")
+        mock_print.assert_any_call("\nTechnology\nTechnology summary")
 
 if __name__ == "__main__":
     unittest.main()

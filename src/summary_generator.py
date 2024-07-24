@@ -75,7 +75,10 @@ def generate_summaries_by_category(config_path: str) -> Dict[str, str]:
 
     return summaries_by_category
 
-if __name__ == "__main__":
-    summaries = generate_summaries_by_category("src/config.json")
+def main(config_path: str):
+    summaries = generate_summaries_by_category(config_path)
     for category, summary in summaries.items():
         print(f"\n{category}\n{summary}")
+
+if __name__ == "__main__":
+    main("src/config.json")
