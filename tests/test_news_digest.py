@@ -3,11 +3,14 @@ import unittest
 from unittest.mock import patch, MagicMock
 import os
 import requests
+import sys
 from src.news_digest import (
     get_env_variable,
     generate_email_content,
     send_email,
-    main
+    main,
+    parse_arguments,
+    run
 )
 from datetime import datetime
 
@@ -70,7 +73,9 @@ class TestNewsDigest(unittest.TestCase):
     @patch("src.news_digest.generate_summaries_by_category")
     @patch("src.news_digest.send_email")
     @patch("os.makedirs")
-    def test_main(self, mock_makedirs, mock_send_email, mock_generate_summaries_by_category, mock_get_env_variable, mock_setup_logging, mock_load_config):
+    @patch("src.news_digest.parse_arguments")
+    def test_main(self, mock_parse_arguments, mock_makedirs, mock_send_email, mock_generate_summaries_by_category, mock_get_env_variable, mock_setup_logging, mock_load_config):
+        mock_parse_arguments.return_value = MagicMock(config="test_config.json")
         mock_load_config.return_value = {
             "log_file": "test.log"
         }
@@ -81,14 +86,19 @@ class TestNewsDigest(unittest.TestCase):
         }[var_name]
         mock_generate_summaries_by_category.return_value = {"Category": "Summary"}
 
-        test_config_path = "test_config.json"
-        main(test_config_path)
+        run()
 
-        mock_load_config.assert_called_once_with(test_config_path)
+        mock_parse_arguments.assert_called_once()
+        mock_load_config.assert_called_once_with("test_config.json")
         mock_setup_logging.assert_called_once()
-        mock_generate_summaries_by_category.assert_called_once_with(test_config_path)
+        mock_generate_summaries_by_category.assert_called_once_with("test_config.json")
         mock_send_email.assert_called_once()
-        # Removing the assertion for mock_makedirs
+        mock_makedirs.assert_called_once_with(os.path.dirname(os.path.join(os.path.abspath(os.path.join(os.path.dirname(os.path.abspath("test_config.json")), "..")), "test.log")), exist_ok=True)
+
+    @patch('sys.argv', ['news_digest.py', '--config', 'test_config.json'])
+    def test_parse_arguments(self):
+        args = parse_arguments()
+        self.assertEqual(args.config, 'test_config.json')
 
 if __name__ == "__main__":
     unittest.main()

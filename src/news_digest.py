@@ -31,13 +31,16 @@ def send_email(subject: str, html_content: str, sender_name: str, sender_email: 
         "html": html_content,
     }
     logging.debug(f"Sending email data: {data}")  # Debugging: Print the data being sent
-    try:
-        response = requests.post(url, auth=("api", get_env_variable('MAILGUN_API_KEY')), data=data)
-        response.raise_for_status()
-        logging.info(f"Email sent to {recipient_email}: {response.status_code}")
-    except requests.exceptions.RequestException as e:
-        logging.error(f"Failed to send email: {e}")
-        print(f"Failed to send email: {e}")
+    
+    response = requests.post(url, auth=("api", get_env_variable('MAILGUN_API_KEY')), data=data)
+    response.raise_for_status()
+    logging.info(f"Email sent to {recipient_email}: {response.status_code}")
+
+def parse_arguments():
+    import argparse
+    parser = argparse.ArgumentParser(description="Weekly News Digest")
+    parser.add_argument('--config', type=str, default='src/config.json', help='Path to the configuration file')
+    return parser.parse_args()
 
 def main(config_path: str):
     config = load_config(config_path)
@@ -47,8 +50,8 @@ def main(config_path: str):
     root_dir = os.path.abspath(os.path.join(config_dir, ".."))
     log_file = os.path.join(root_dir, config.get("log_file", "output.log"))
     log_dir = os.path.dirname(log_file)
-    if not os.path.exists(log_dir):
-        os.makedirs(log_dir)
+    
+    os.makedirs(log_dir, exist_ok=True)
         
     setup_logging(log_file)
 
@@ -70,10 +73,7 @@ def main(config_path: str):
     send_email(subject, email_content, sender_name, sender_email, recipient_email)
 
 def run():
-    import argparse
-    parser = argparse.ArgumentParser(description="Weekly News Digest")
-    parser.add_argument('--config', type=str, default='src/config.json', help='Path to the configuration file')
-    args = parser.parse_args()
+    args = parse_arguments()
     main(args.config)
 
 if __name__ == "__main__":
