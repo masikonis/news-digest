@@ -10,24 +10,28 @@ from datetime import datetime, timedelta
 from typing import List, Dict, Any, Tuple
 from utils import setup_logging
 
-try:
-    from zoneinfo import ZoneInfo
-except ImportError:
-    from datetime import tzinfo, timezone
+def get_zoneinfo():
+    try:
+        from zoneinfo import ZoneInfo
+    except ImportError:
+        from datetime import tzinfo, timezone, timedelta
 
-    class ZoneInfo(tzinfo):
-        def __init__(self, name):
-            self.name = name
-            self.offset = timezone(timedelta(hours=2))  # Hardcoded offset for Europe/Vilnius
+        class ZoneInfo(tzinfo):
+            def __init__(self, name):
+                self.name = name
+                self.offset = timezone(timedelta(hours=2))  # Hardcoded offset for Europe/Vilnius
 
-        def utcoffset(self, dt):
-            return self.offset.utcoffset(dt)
+            def utcoffset(self, dt):
+                return self.offset.utcoffset(dt)
 
-        def dst(self, dt):
-            return timedelta(0)
+            def dst(self, dt):
+                return timedelta(0)
 
-        def tzname(self, dt):
-            return self.name
+            def tzname(self, dt):
+                return self.name
+    return ZoneInfo
+
+ZoneInfo = get_zoneinfo()
 
 class DateTimeEncoder(json.JSONEncoder):
     def default(self, obj):

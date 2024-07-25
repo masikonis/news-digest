@@ -1,4 +1,5 @@
 # tests/test_rss_scraper.py
+
 import unittest
 from unittest.mock import patch, mock_open, MagicMock
 import os
@@ -18,7 +19,12 @@ from src.rss_scraper import (
     get_weekly_file_path,
     get_week_range,
     DateTimeEncoder,
-    ZoneInfo
+    get_zoneinfo,
+    main,
+    load_config,
+    get_current_year_and_week,
+    load_existing_news_data,
+    add_new_items
 )
 
 class TestRssScraper(unittest.TestCase):
@@ -35,10 +41,23 @@ class TestRssScraper(unittest.TestCase):
             self.assertEqual(data, [{"id": "1"}])
 
     @patch("builtins.open", new_callable=mock_open)
+    def test_load_existing_data_empty_file(self, mock_file):
+        with patch("os.path.exists", return_value=True):
+            mock_file.return_value.read.return_value = ""
+            data = load_existing_data("mock_path")
+            self.assertEqual(data, [])
+
+    @patch("builtins.open", new_callable=mock_open)
+    def test_load_existing_data_invalid_json(self, mock_file):
+        with patch("os.path.exists", return_value=True):
+            mock_file.return_value.read.return_value = "{invalid json"
+            data = load_existing_data("mock_path")
+            self.assertEqual(data, [])
+
+    @patch("builtins.open", new_callable=mock_open)
     def test_save_data(self, mock_file):
         save_data("mock_path", self.mock_data)
         mock_file.assert_called_once_with("mock_path", 'w')
-        # Simplify the assertion to check if write was called
         self.assertTrue(mock_file().write.called)
 
     def test_clean_html(self):
@@ -85,6 +104,31 @@ class TestRssScraper(unittest.TestCase):
         date = datetime.now()
         encoded = json.dumps({'date': date}, cls=DateTimeEncoder)
         self.assertIn(date.isoformat(), encoded)
+
+    @patch.dict('sys.modules', {'zoneinfo': None})
+    def test_get_zoneinfo_importerror(self):
+        ZoneInfo = get_zoneinfo()
+        self.assertTrue(hasattr(ZoneInfo, 'utcoffset'))
+
+    def test_handle_request_exception(self):
+        with patch('time.sleep') as mock_sleep, patch('logging.error') as mock_error, patch('logging.info') as mock_info:
+            handle_request_exception(Exception("Test error"), "http://example.com/rss", 0, 3, 2)
+            mock_error.assert_called_with("Error fetching http://example.com/rss: Test error")
+            mock_info.assert_called_with("Retrying in 2 seconds...")
+
+    @patch("builtins.open", new_callable=mock_open, read_data='{"categories": {"category": "http://example.com/rss"}, "base_folder": "base_folder", "log_file": "log_file"}')
+    @patch("src.rss_scraper.get_current_year_and_week", return_value=(2023, 30))
+    @patch("src.rss_scraper.scrape_rss_feed", return_value=[])
+    @patch("src.rss_scraper.setup_logging")
+    @patch("src.rss_scraper.save_data")
+    @patch("src.rss_scraper.load_existing_news_data", return_value=([], set()))
+    @patch("src.rss_scraper.add_new_items")
+    def test_main(self, mock_add_new_items, mock_load_existing_news_data, mock_save_data, mock_setup_logging, mock_scrape_rss_feed, mock_get_current_year_and_week, mock_open):
+        main("config_path")
+        mock_setup_logging.assert_called_once_with(os.path.abspath(os.path.join("..", "log_file")))
+        mock_scrape_rss_feed.assert_called_once()
+        mock_save_data.assert_called_once()
+        mock_add_new_items.assert_called_once()
 
 if __name__ == "__main__":
     unittest.main()
