@@ -184,12 +184,16 @@ def add_new_items(news_items: List[Dict[str, str]], existing_data: List[Dict[str
             new_items_count += 1
     return new_items_count
 
-def run():
+def parse_arguments():
     import argparse
     parser = argparse.ArgumentParser(description="RSS Scraper for Weekly News")
     parser.add_argument('--config', type=str, default='src/config.json', help='Path to the configuration file')
-    args = parser.parse_args()
+    return parser.parse_args()
+
+def run():
+    args = parse_arguments()
     main(args.config)
 
 if __name__ == "__main__":
     run()
+

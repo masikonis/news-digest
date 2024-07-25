@@ -1,12 +1,12 @@
 # tests/test_rss_scraper.py
-
 import unittest
 from unittest.mock import patch, mock_open, MagicMock
 import os
 import json
 import requests
 import xml.etree.ElementTree as ET
-from datetime import datetime, timedelta
+import argparse
+from datetime import datetime, timedelta, timezone
 from src.rss_scraper import (
     load_existing_data,
     backup_file,
@@ -25,7 +25,9 @@ from src.rss_scraper import (
     load_config,
     get_current_year_and_week,
     load_existing_news_data,
-    add_new_items
+    add_new_items,
+    parse_arguments,
+    run
 )
 
 # Ensure ZoneInfo is imported correctly
@@ -43,6 +45,11 @@ class TestRssScraper(unittest.TestCase):
         with patch("os.path.exists", return_value=True):
             data = load_existing_data("mock_path")
             self.assertEqual(data, [{"id": "1"}])
+
+    @patch("os.path.exists", return_value=False)
+    def test_load_existing_data_file_not_exist(self, mock_exists):
+        data = load_existing_data("mock_path")
+        self.assertEqual(data, [])
 
     @patch("builtins.open", new_callable=mock_open)
     def test_load_existing_data_empty_file(self, mock_file):
@@ -87,11 +94,52 @@ class TestRssScraper(unittest.TestCase):
         self.assertEqual(results, [])
         self.assertEqual(mock_get.call_count, 2)
 
+    @patch("requests.get")
+    def test_scrape_rss_feed_success(self, mock_get):
+        mock_response = MagicMock()
+        mock_response.content = """
+        <rss>
+            <channel>
+                <item>
+                    <title>Title 1</title>
+                    <description><![CDATA[<p>Description 1</p>]]></description>
+                    <guid>1</guid>
+                    <pubDate>Mon, 25 Jul 2022 10:00:00 +0000</pubDate>
+                </item>
+                <item>
+                    <title>Title 2</title>
+                    <description><![CDATA[<p>Description 2</p>]]></description>
+                    <guid>2</guid>
+                    <pubDate>Mon, 25 Jul 2022 15:00:00 +0000</pubDate>
+                </item>
+            </channel>
+        </rss>
+        """
+        mock_response.raise_for_status = MagicMock()
+        mock_get.return_value = mock_response
+
+        start_of_week = datetime(2022, 7, 25, tzinfo=ZoneInfo("Europe/Vilnius"))
+        end_of_week = start_of_week + timedelta(days=7)
+
+        results = scrape_rss_feed("http://example.com/rss", "Test Category", start_of_week, end_of_week)
+        self.assertEqual(len(results), 2)
+        self.assertEqual(results[0]['title'], 'Title 1')
+        self.assertEqual(results[1]['title'], 'Title 2')
+
     @patch("os.makedirs")
-    @patch("os.path.exists", return_value=False)
+    @patch("os.path.exists", side_effect=[False, True])
     def test_get_weekly_file_path(self, mock_exists, mock_makedirs):
         path = get_weekly_file_path("base_folder", 2023, 30)
+        mock_exists.assert_called_with("base_folder")
         mock_makedirs.assert_called_once_with("base_folder")
+        self.assertTrue(path.endswith("news_2023_30.json"))
+
+    @patch("os.makedirs")
+    @patch("os.path.exists", return_value=True)
+    def test_get_weekly_file_path_exists(self, mock_exists, mock_makedirs):
+        path = get_weekly_file_path("base_folder", 2023, 30)
+        mock_exists.assert_called_with("base_folder")
+        mock_makedirs.assert_not_called()
         self.assertTrue(path.endswith("news_2023_30.json"))
 
     def test_get_week_range(self):
@@ -108,6 +156,11 @@ class TestRssScraper(unittest.TestCase):
         date = datetime.now()
         encoded = json.dumps({'date': date}, cls=DateTimeEncoder)
         self.assertIn(date.isoformat(), encoded)
+
+    def test_date_time_encoder_non_datetime(self):
+        data = {'key': 'value'}
+        encoded = json.dumps(data, cls=DateTimeEncoder)
+        self.assertIn('"key": "value"', encoded)
 
     @patch.dict('sys.modules', {'zoneinfo': None})
     def test_get_zoneinfo_importerror(self):
@@ -221,6 +274,27 @@ class TestRssScraper(unittest.TestCase):
         mock_save_data.assert_called_once()
         mock_add_new_items.assert_called_once()
 
+    @patch('argparse.ArgumentParser.parse_args',
+           return_value=argparse.Namespace(config='test_config.json'))
+    def test_parse_arguments(self, mock_parse_args):
+        args = parse_arguments()
+        self.assertEqual(args.config, 'test_config.json')
+
+    @patch("src.rss_scraper.parse_arguments", return_value=argparse.Namespace(config='test_config.json'))
+    @patch("src.rss_scraper.main")
+    def test_run(self, mock_main, mock_parse_arguments):
+        run()
+        mock_parse_arguments.assert_called_once()
+        mock_main.assert_called_once_with('test_config.json')
+
+    @patch.dict('sys.modules', {'zoneinfo': None})
+    def test_zoneinfo_fallback(self):
+        ZoneInfo = get_zoneinfo()
+        zi = ZoneInfo("Europe/Vilnius")
+        self.assertEqual(zi.name, "Europe/Vilnius")
+        self.assertEqual(zi.utcoffset(None), timezone(timedelta(hours=2)).utcoffset(None))
+        self.assertEqual(zi.dst(None), timedelta(0))
+        self.assertEqual(zi.tzname(None), "Europe/Vilnius")
+
 if __name__ == "__main__":
     unittest.main()
-
