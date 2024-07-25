@@ -5,6 +5,7 @@ from unittest.mock import patch, mock_open, MagicMock
 import os
 import json
 import requests
+import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta
 from src.rss_scraper import (
     load_existing_data,
@@ -26,6 +27,9 @@ from src.rss_scraper import (
     load_existing_news_data,
     add_new_items
 )
+
+# Ensure ZoneInfo is imported correctly
+ZoneInfo = get_zoneinfo()
 
 class TestRssScraper(unittest.TestCase):
 
@@ -116,6 +120,93 @@ class TestRssScraper(unittest.TestCase):
             mock_error.assert_called_with("Error fetching http://example.com/rss: Test error")
             mock_info.assert_called_with("Retrying in 2 seconds...")
 
+    def test_parse_rss_feed(self):
+        xml_data = """
+        <rss>
+            <channel>
+                <item>
+                    <title>Title 1</title>
+                    <description><![CDATA[<p>Description 1</p>]]></description>
+                    <guid>1</guid>
+                    <pubDate>Mon, 25 Jul 2022 10:00:00 +0000</pubDate>
+                </item>
+                <item>
+                    <title>Title 2</title>
+                    <description><![CDATA[<p>Description 2</p>]]></description>
+                    <guid>2</guid>
+                    <pubDate>Mon, 25 Jul 2022 15:00:00 +0000</pubDate>
+                </item>
+                <item>
+                    <title>Title 3</title>
+                    <description><![CDATA[<p>Description 3</p>]]></description>
+                    <guid>3</guid>
+                    <pubDate>Mon, 01 Aug 2022 10:00:00 +0000</pubDate>
+                </item>
+            </channel>
+        </rss>
+        """
+        category = "Test Category"
+        start_of_week = datetime(2022, 7, 25, tzinfo=ZoneInfo("Europe/Vilnius"))
+        end_of_week = start_of_week + timedelta(days=7)
+
+        result = parse_rss_feed(xml_data, category, start_of_week, end_of_week)
+        self.assertEqual(len(result), 2)
+        self.assertEqual(result[0]['title'], 'Title 1')
+        self.assertEqual(result[1]['title'], 'Title 2')
+
+    def test_parse_rss_item_value_error(self):
+        item = ET.Element('item')
+        ET.SubElement(item, 'title').text = "Title"
+        ET.SubElement(item, 'description').text = "<p>Description</p>"
+        ET.SubElement(item, 'guid').text = "123"
+        ET.SubElement(item, 'pubDate').text = "Invalid Date"
+        with self.assertLogs(level='ERROR') as cm:
+            result = parse_rss_item(item, "category")
+            self.assertIsNone(result)
+            self.assertIn("ERROR:root:Unable to parse date: Invalid Date", cm.output[0])
+
+    def test_parse_rss_item_missing_pub_date(self):
+        item = ET.Element('item')
+        ET.SubElement(item, 'title').text = "Title"
+        ET.SubElement(item, 'description').text = "<p>Description</p>"
+        ET.SubElement(item, 'guid').text = "123"
+        result = parse_rss_item(item, "category")
+        self.assertIsNone(result)
+
+    @patch("src.rss_scraper.datetime")
+    def test_get_current_year_and_week(self, mock_datetime):
+        fixed_date = datetime(2023, 7, 25, tzinfo=ZoneInfo("Europe/Vilnius"))
+        mock_datetime.now.return_value = fixed_date
+        mock_datetime.side_effect = lambda *args, **kw: datetime(*args, **kw)
+        year, week = get_current_year_and_week()
+        self.assertEqual(year, 2023)
+        self.assertEqual(week, 30)
+
+    @patch("src.rss_scraper.load_existing_data")
+    def test_load_existing_news_data(self, mock_load_existing_data):
+        mock_load_existing_data.return_value = [
+            {"id": "1", "title": "Title 1", "description": "Description 1", "category": "Category 1", "pub_date": datetime.now()},
+            {"id": "2", "title": "Title 2", "description": "Description 2", "category": "Category 2", "pub_date": datetime.now()}
+        ]
+        existing_data, existing_ids = load_existing_news_data("mock_path")
+        self.assertEqual(len(existing_data), 2)
+        self.assertEqual(existing_ids, {"1", "2"})
+
+    def test_add_new_items(self):
+        existing_data = [
+            {"id": "1", "title": "Title 1", "description": "Description 1", "category": "Category 1", "pub_date": datetime.now()}
+        ]
+        existing_ids = {"1"}
+        new_items = [
+            {"id": "2", "title": "Title 2", "description": "Description 2", "category": "Category 2", "pub_date": datetime.now()},
+            {"id": "3", "title": "Title 3", "description": "Description 3", "category": "Category 3", "pub_date": datetime.now()},
+            {"id": "1", "title": "Title 1", "description": "Description 1", "category": "Category 1", "pub_date": datetime.now()}  # Duplicate
+        ]
+        new_items_count = add_new_items(new_items, existing_data, existing_ids)
+        self.assertEqual(new_items_count, 2)
+        self.assertEqual(len(existing_data), 3)
+        self.assertEqual(existing_ids, {"1", "2", "3"})
+
     @patch("builtins.open", new_callable=mock_open, read_data='{"categories": {"category": "http://example.com/rss"}, "base_folder": "base_folder", "log_file": "log_file"}')
     @patch("src.rss_scraper.get_current_year_and_week", return_value=(2023, 30))
     @patch("src.rss_scraper.scrape_rss_feed", return_value=[])
@@ -132,3 +223,4 @@ class TestRssScraper(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
