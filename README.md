@@ -6,7 +6,7 @@ This script scrapes news articles from RSS feeds, leverages AI to analyze and hi
 
 ## Rationale
 
-This app was built as a way to fight news addiction. Since I stopped checking the news regularly, I needed a way to still keep up to date with the latest news so that I do not live under a rock. Instead of spending 2 hours per day, I receive a summary each Sunday evening that I can read in 10 minutes. This results in massive time savings.
+This application was developed to combat news addiction. After deciding to stop checking the news regularly, I needed a way to stay informed without spending excessive time. Instead of spending two hours a day, I now receive a summary every Sunday evening that I can read in ten minutes, resulting in significant time savings.
 
 ## Setup & Usage
 
@@ -48,6 +48,4 @@ Edit the `src/config.json` file with the following structure if necessary:
 
 ## Automating with Launchd
 
-You can automate the RSS scraper to run every hour on a Mac using a `plist` file with `launchd`.
-
-The .plist files required for this Python application are stored in the `~/Library/LaunchAgents/` directory.
+Automate the RSS scraper to run every hour on a Mac using a plist file with launchd. The `.plist` files required for this Python application are stored in the `~/Library/LaunchAgents/` directory.
