@@ -156,6 +156,11 @@ class TestRssScraper(unittest.TestCase):
         date = datetime.now()
         encoded = json.dumps({'date': date}, cls=DateTimeEncoder)
         self.assertIn(date.isoformat(), encoded)
+    
+    def test_date_time_encoder_direct_call(self):
+        encoder = DateTimeEncoder()
+        result = encoder.default("test_string")
+        self.assertEqual(result, "test_string")
 
     def test_date_time_encoder_non_datetime(self):
         data = {'key': 'value'}

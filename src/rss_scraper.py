@@ -37,7 +37,10 @@ class DateTimeEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, datetime):
             return obj.isoformat()
-        return super().default(obj)
+        try:
+            return super().default(obj)
+        except TypeError:
+            return str(obj)
 
 def load_existing_data(file_path: str) -> List[Dict[str, Any]]:
     if os.path.exists(file_path):
