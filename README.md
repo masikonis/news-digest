@@ -35,6 +35,7 @@ Edit the `src/config.json` file with the following structure if necessary:
     "categories": {
         "Ukraina": "https://www.lrt.lt/tema/rusijos-karas-pries-ukraina?rss",
         "Verslas": "https://www.lrt.lt/naujienos/verslas?rss",
+        "Investavimas": "https://www.lrt.lt/tema/investavimas?rss",
         "Pasaulis": "https://www.lrt.lt/naujienos/pasaulyje?rss",
         "Lietuva": "https://www.lrt.lt/naujienos/lietuvoje?rss",
         "Marijampolė": "https://www.suvalkietis.lt/feed/"
