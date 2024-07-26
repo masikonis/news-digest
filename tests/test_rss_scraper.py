@@ -6,6 +6,7 @@ import json
 import requests
 import xml.etree.ElementTree as ET
 import argparse
+import tempfile
 from datetime import datetime, timedelta, timezone
 from src.rss_scraper import (
     load_existing_data,
@@ -273,11 +274,17 @@ class TestRssScraper(unittest.TestCase):
     @patch("src.rss_scraper.load_existing_news_data", return_value=([], set()))
     @patch("src.rss_scraper.add_new_items")
     def test_main(self, mock_add_new_items, mock_load_existing_news_data, mock_save_data, mock_setup_logging, mock_scrape_rss_feed, mock_get_current_year_and_week, mock_open):
-        main("config_path")
-        mock_setup_logging.assert_called_once_with(os.path.abspath(os.path.join("..", "log_file")))
-        mock_scrape_rss_feed.assert_called_once()
-        mock_save_data.assert_called_once()
-        mock_add_new_items.assert_called_once()
+        with tempfile.TemporaryDirectory() as temp_dir:
+            mock_open.return_value.read.return_value = json.dumps({
+                "categories": {"category": "http://example.com/rss"},
+                "base_folder": temp_dir,
+                "log_file": os.path.join(temp_dir, "log_file")
+            })
+            main("config_path")
+            mock_setup_logging.assert_called_once_with(os.path.join(temp_dir, "log_file"))
+            mock_scrape_rss_feed.assert_called_once()
+            mock_save_data.assert_called_once()
+            mock_add_new_items.assert_called_once()
 
     @patch('argparse.ArgumentParser.parse_args',
            return_value=argparse.Namespace(config='test_config.json'))

@@ -4,6 +4,7 @@ from unittest.mock import patch, MagicMock
 import os
 import requests
 import sys
+import tempfile
 from src.news_digest import (
     get_env_variable,
     generate_email_content,
@@ -75,25 +76,26 @@ class TestNewsDigest(unittest.TestCase):
     @patch("os.makedirs")
     @patch("src.news_digest.parse_arguments")
     def test_main(self, mock_parse_arguments, mock_makedirs, mock_send_email, mock_generate_summaries_by_category, mock_get_env_variable, mock_setup_logging, mock_load_config):
-        mock_parse_arguments.return_value = MagicMock(config="test_config.json")
-        mock_load_config.return_value = {
-            "log_file": "test.log"
-        }
-        mock_get_env_variable.side_effect = lambda var_name: {
-            "SENDER_NAME": "Test Sender",
-            "SENDER_EMAIL": "sender@test.com",
-            "RECIPIENT_EMAIL": "recipient@test.com",
-        }[var_name]
-        mock_generate_summaries_by_category.return_value = {"Category": "Summary"}
+        with tempfile.TemporaryDirectory() as temp_dir:
+            mock_parse_arguments.return_value = MagicMock(config="test_config.json")
+            mock_load_config.return_value = {
+                "log_file": os.path.join(temp_dir, "test.log")
+            }
+            mock_get_env_variable.side_effect = lambda var_name: {
+                "SENDER_NAME": "Test Sender",
+                "SENDER_EMAIL": "sender@test.com",
+                "RECIPIENT_EMAIL": "recipient@test.com",
+            }[var_name]
+            mock_generate_summaries_by_category.return_value = {"Category": "Summary"}
 
-        run()
+            run()
 
-        mock_parse_arguments.assert_called_once()
-        mock_load_config.assert_called_once_with("test_config.json")
-        mock_setup_logging.assert_called_once()
-        mock_generate_summaries_by_category.assert_called_once_with("test_config.json")
-        mock_send_email.assert_called_once()
-        mock_makedirs.assert_called_once_with(os.path.dirname(os.path.join(os.path.abspath(os.path.join(os.path.dirname(os.path.abspath("test_config.json")), "..")), "test.log")), exist_ok=True)
+            mock_parse_arguments.assert_called_once()
+            mock_load_config.assert_called_once_with("test_config.json")
+            mock_setup_logging.assert_called_once_with(os.path.join(temp_dir, "test.log"))
+            mock_generate_summaries_by_category.assert_called_once_with("test_config.json")
+            mock_send_email.assert_called_once()
+            mock_makedirs.assert_called_once_with(os.path.dirname(os.path.join(os.path.abspath(os.path.join(os.path.dirname(os.path.abspath("test_config.json")), "..")), os.path.join(temp_dir, "test.log"))), exist_ok=True)
 
     @patch('sys.argv', ['news_digest.py', '--config', 'test_config.json'])
     def test_parse_arguments(self):

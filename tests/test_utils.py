@@ -1,7 +1,7 @@
 # tests/test_utils.py
-import os
 import unittest
-import logging
+import os
+import tempfile
 from unittest.mock import patch, mock_open, MagicMock
 from src.utils import setup_logging, load_config
 
@@ -12,22 +12,24 @@ class TestUtils(unittest.TestCase):
     @patch("logging.FileHandler")
     @patch("logging.basicConfig")
     def test_setup_logging_creates_directory(self, mock_basicConfig, mock_fileHandler, mock_exists, mock_makedirs):
-        log_file = "test_logs/test.log"
-        setup_logging(log_file)
-        mock_exists.assert_called_once_with("test_logs")
-        mock_makedirs.assert_called_once_with("test_logs")
-        mock_fileHandler.assert_called_once_with(log_file)
-        mock_basicConfig.assert_called_once()
+        with tempfile.TemporaryDirectory() as temp_dir:
+            log_file = os.path.join(temp_dir, "test.log")
+            setup_logging(log_file)
+            mock_exists.assert_called_once_with(temp_dir)
+            mock_makedirs.assert_called_once_with(temp_dir)
+            mock_fileHandler.assert_called_once_with(log_file)
+            mock_basicConfig.assert_called_once()
 
     @patch("os.path.exists", return_value=True)
     @patch("logging.FileHandler")
     @patch("logging.basicConfig")
     def test_setup_logging_existing_directory(self, mock_basicConfig, mock_fileHandler, mock_exists):
-        log_file = "test_logs/test.log"
-        setup_logging(log_file)
-        mock_exists.assert_called_once_with("test_logs")
-        mock_fileHandler.assert_called_once_with(log_file)
-        mock_basicConfig.assert_called_once()
+        with tempfile.TemporaryDirectory() as temp_dir:
+            log_file = os.path.join(temp_dir, "test.log")
+            setup_logging(log_file)
+            mock_exists.assert_called_once_with(temp_dir)
+            mock_fileHandler.assert_called_once_with(log_file)
+            mock_basicConfig.assert_called_once()
 
     @patch("builtins.open", new_callable=mock_open, read_data='{"key": "value"}')
     def test_load_config_valid_json(self, mock_file):

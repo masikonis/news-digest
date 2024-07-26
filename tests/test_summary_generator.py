@@ -1,3 +1,4 @@
+# tests/test_summary_generator.py
 import unittest
 import os
 import tempfile
@@ -9,7 +10,7 @@ from src.summary_generator import (
     sort_by_category,
     generate_summary,
     generate_summaries_by_category,
-    main  # Importing the new main function
+    main
 )
 
 class TestSummaryGenerator(unittest.TestCase):
@@ -77,73 +78,82 @@ class TestSummaryGenerator(unittest.TestCase):
     def test_generate_summaries_by_category_full(self, mock_generate_summary, mock_read_json_file, 
                                                  mock_get_latest_json_file, mock_load_config, 
                                                  mock_setup_logging, mock_makedirs, mock_exists):
-        # Setup mocks
-        mock_load_config.return_value = {"base_folder": "test_folder", "log_file": "test.log"}
-        mock_get_latest_json_file.return_value = "test_file.json"
-        mock_read_json_file.return_value = [
-            {"title": "News 1", "description": "Description 1", "category": "Politics"},
-            {"title": "News 2", "description": "Description 2", "category": "Technology"},
-            {"title": "News 3", "description": "Description 3", "category": "Uncategorized"},
-        ]
-        mock_generate_summary.side_effect = ["Politics summary", "Technology summary", "Uncategorized summary"]
-        mock_exists.return_value = False
+        with tempfile.TemporaryDirectory() as temp_dir:
+            # Setup mocks
+            mock_load_config.return_value = {
+                "base_folder": temp_dir,
+                "log_file": os.path.join(temp_dir, "test.log")
+            }
+            mock_get_latest_json_file.return_value = "test_file.json"
+            mock_read_json_file.return_value = [
+                {"title": "News 1", "description": "Description 1", "category": "Politics"},
+                {"title": "News 2", "description": "Description 2", "category": "Technology"},
+                {"title": "News 3", "description": "Description 3", "category": "Uncategorized"},
+            ]
+            mock_generate_summary.side_effect = ["Politics summary", "Technology summary", "Uncategorized summary"]
+            mock_exists.return_value = False
 
-        # Call the function
-        result = generate_summaries_by_category("test_config.json")
+            # Call the function
+            result = generate_summaries_by_category("test_config.json")
 
-        # Assertions
-        self.assertEqual(result, {
-            "Politics": "Politics summary",
-            "Technology": "Technology summary",
-            "Uncategorized": "Uncategorized summary"
-        })
-        mock_load_config.assert_called_once_with("test_config.json")
-        mock_get_latest_json_file.assert_called_once()
-        mock_read_json_file.assert_called_once()
-        self.assertEqual(mock_generate_summary.call_count, 3)
-        mock_makedirs.assert_called_once()
-        mock_setup_logging.assert_called_once()
+            # Assertions
+            self.assertEqual(result, {
+                "Politics": "Politics summary",
+                "Technology": "Technology summary",
+                "Uncategorized": "Uncategorized summary"
+            })
+            mock_load_config.assert_called_once_with("test_config.json")
+            mock_get_latest_json_file.assert_called_once()
+            mock_read_json_file.assert_called_once()
+            self.assertEqual(mock_generate_summary.call_count, 3)
+            mock_makedirs.assert_called_once()
+            mock_setup_logging.assert_called_once_with(os.path.join(temp_dir, "test.log"))
 
     @patch('src.summary_generator.logging.error')
     @patch('src.summary_generator.load_config')
     @patch('src.summary_generator.get_latest_json_file')
     def test_generate_summaries_by_category_file_not_found(self, mock_get_latest_json_file, mock_load_config, mock_logging_error):
-        mock_load_config.return_value = {"base_folder": "test_folder", "log_file": "test.log"}
-        mock_get_latest_json_file.side_effect = FileNotFoundError("No JSON files found")
+        with tempfile.TemporaryDirectory() as temp_dir:
+            mock_load_config.return_value = {"base_folder": temp_dir, "log_file": os.path.join(temp_dir, "test.log")}
+            mock_get_latest_json_file.side_effect = FileNotFoundError("No JSON files found")
 
-        result = generate_summaries_by_category("test_config.json")
+            result = generate_summaries_by_category("test_config.json")
 
-        self.assertEqual(result, {})
-        mock_logging_error.assert_called_once()
-        error_message = mock_logging_error.call_args[0][0]
-        self.assertIsInstance(error_message, FileNotFoundError)
-        self.assertEqual(str(error_message), "No JSON files found")
+            self.assertEqual(result, {})
+            mock_logging_error.assert_called_once()
+            error_message = mock_logging_error.call_args[0][0]
+            self.assertIsInstance(error_message, FileNotFoundError)
+            self.assertEqual(str(error_message), "No JSON files found")
 
     @patch('src.summary_generator.logging.error')
     @patch('src.summary_generator.load_config')
     @patch('src.summary_generator.get_latest_json_file')
     def test_generate_summaries_by_category_unexpected_error(self, mock_get_latest_json_file, mock_load_config, mock_logging_error):
-        mock_load_config.return_value = {"base_folder": "test_folder", "log_file": "test.log"}
-        mock_get_latest_json_file.side_effect = Exception("Unexpected error")
+        with tempfile.TemporaryDirectory() as temp_dir:
+            mock_load_config.return_value = {"base_folder": temp_dir, "log_file": os.path.join(temp_dir, "test.log")}
+            mock_get_latest_json_file.side_effect = Exception("Unexpected error")
 
-        result = generate_summaries_by_category("test_config.json")
+            result = generate_summaries_by_category("test_config.json")
 
-        self.assertEqual(result, {})
-        mock_logging_error.assert_called_once_with("An unexpected error occurred: Unexpected error")
+            self.assertEqual(result, {})
+            mock_logging_error.assert_called_once_with("An unexpected error occurred: Unexpected error")
 
     @patch('builtins.print')
     @patch('src.summary_generator.generate_summaries_by_category')
-    def test_main(self, mock_generate_summaries_by_category, mock_print):
-        mock_generate_summaries_by_category.return_value = {
-            "Politics": "Politics summary",
-            "Technology": "Technology summary"
-        }
+    @patch('src.summary_generator.load_config')
+    def test_main(self, mock_load_config, mock_generate_summaries_by_category, mock_print):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            mock_generate_summaries_by_category.return_value = {
+                "Politics": "Politics summary",
+                "Technology": "Technology summary"
+            }
+            mock_load_config.return_value = {"base_folder": temp_dir, "log_file": os.path.join(temp_dir, "test.log")}
 
-        main("src/config.json")
+            main("src/config.json")
 
-        mock_generate_summaries_by_category.assert_called_once_with("src/config.json")
-        mock_print.assert_any_call("\nPolitics\nPolitics summary")
-        mock_print.assert_any_call("\nTechnology\nTechnology summary")
+            mock_generate_summaries_by_category.assert_called_once_with("src/config.json")
+            mock_print.assert_any_call("\nPolitics\nPolitics summary")
+            mock_print.assert_any_call("\nTechnology\nTechnology summary")
 
 if __name__ == "__main__":
     unittest.main()
