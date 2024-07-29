@@ -22,5 +22,15 @@
     </dict>
     <key>StandardOutPath</key>
     <string>/Users/nerijus/Python/masikonis/news-digest/output.log</string>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <dict>
+        <key>PathState</key>
+        <dict>
+            <key>/Users/nerijus/Python/masikonis/news-digest/src/config.json</key>
+            <true/>
+        </dict>
+    </dict>
 </dict>
 </plist>
