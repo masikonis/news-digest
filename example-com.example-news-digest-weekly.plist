@@ -14,7 +14,7 @@
     <key>StartCalendarInterval</key>
     <dict>
         <key>Weekday</key>
-        <integer>1</integer> <!-- 1 = Sunday -->
+        <integer>0</integer> <!-- 0 = Sunday -->
         <key>Hour</key>
         <integer>19</integer>
         <key>Minute</key>
