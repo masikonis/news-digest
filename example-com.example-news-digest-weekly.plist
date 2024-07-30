@@ -21,16 +21,8 @@
         <integer>0</integer>
     </dict>
     <key>StandardOutPath</key>
-    <string>/Users/nerijus/Python/masikonis/news-digest/output.log</string>
-    <key>RunAtLoad</key>
-    <true/>
-    <key>KeepAlive</key>
-    <dict>
-        <key>PathState</key>
-        <dict>
-            <key>/Users/nerijus/Python/masikonis/news-digest/src/config.json</key>
-            <true/>
-        </dict>
-    </dict>
+    <string>/path/to/your/output.log</string>
+    <key>StandardErrorPath</key>
+    <string>/path/to/your/output.log</string>
 </dict>
 </plist>
