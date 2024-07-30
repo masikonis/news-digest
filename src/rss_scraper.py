@@ -8,7 +8,7 @@ import time
 import logging
 from datetime import datetime, timedelta
 from typing import List, Dict, Any, Tuple
-from utils import setup_logging
+from utils import setup_logging, load_config
 
 def get_zoneinfo():
     try:
@@ -147,7 +147,7 @@ def main(config_path: str) -> None:
     
     base_folder = os.path.abspath(os.path.join(config_dir, "..", config["base_folder"]))
     log_file = os.path.abspath(os.path.join(config_dir, "..", config["log_file"]))
-    setup_logging(log_file)
+    setup_logging(log_file)  # No force parameter here
     
     year, week = get_current_year_and_week()
     file_path = get_weekly_file_path(base_folder, year, week)
@@ -160,9 +160,7 @@ def main(config_path: str) -> None:
         add_new_items(news_items, existing_data, existing_ids)
 
     save_data(file_path, existing_data)
-    logging.getLogger().setLevel(logging.INFO)
     logging.info(f"Script completed successfully at {datetime.now(ZoneInfo('Europe/Vilnius'))}")
-    logging.getLogger().setLevel(logging.ERROR)
 
 def load_config(config_path: str) -> Dict[str, Any]:
     with open(config_path, 'r') as file:
@@ -199,4 +197,3 @@ def run():
 
 if __name__ == "__main__":
     run()
-

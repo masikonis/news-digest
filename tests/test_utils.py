@@ -14,7 +14,7 @@ class TestUtils(unittest.TestCase):
     def test_setup_logging_creates_directory(self, mock_basicConfig, mock_fileHandler, mock_exists, mock_makedirs):
         with tempfile.TemporaryDirectory() as temp_dir:
             log_file = os.path.join(temp_dir, "test.log")
-            setup_logging(log_file)
+            setup_logging(log_file, force=True)
             mock_exists.assert_called_once_with(temp_dir)
             mock_makedirs.assert_called_once_with(temp_dir)
             mock_fileHandler.assert_called_once_with(log_file)
@@ -26,7 +26,7 @@ class TestUtils(unittest.TestCase):
     def test_setup_logging_existing_directory(self, mock_basicConfig, mock_fileHandler, mock_exists):
         with tempfile.TemporaryDirectory() as temp_dir:
             log_file = os.path.join(temp_dir, "test.log")
-            setup_logging(log_file)
+            setup_logging(log_file, force=True)
             mock_exists.assert_called_once_with(temp_dir)
             mock_fileHandler.assert_called_once_with(log_file)
             mock_basicConfig.assert_called_once()
