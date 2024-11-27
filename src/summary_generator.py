@@ -9,7 +9,7 @@ from langchain.schema import HumanMessage
 from model_initializer import initialize_model
 from utils import setup_logging, load_config
 
-model = initialize_model()
+model = initialize_model('summary')
 
 def get_latest_json_file(directory: str) -> str:
     json_files = glob.glob(os.path.join(directory, "*.json"))
@@ -34,10 +34,16 @@ def generate_summary(news_items: List[Dict[str, Any]]) -> str:
     prompt = (
         "Tu esi dirbtinio intelekto naujienų apžvalgininkas. Apibendrink šias naujienas į vieną glaustą paragrafą, "
         "apie 120 žodžių, pabrėždamas svarbiausius momentus ir labiausiai įtakojančius įvykius. Šis apibendrinimas skirtas žmogui, kuris nesekė naujienų ir nori sužinoti "
-        "svarbiausius įvykius per savaitę. Pasirink ir pabrėžk tik pačius svarbiausius ir įtakingiausius įvykius, paversdamas naujienas rišliu ir nuosekliu pasakojimu:\n"
+        "svarbiausius įvykius per savaitę. Pasirink ir pabrėžk tik pačius svarbiausius ir įtakingiausius įvykius, paversdamas naujienas rišliu ir nuosekliu pasakojimu:\n\n"
     )
+    
     for item in news_items:
-        prompt += f"- {item['title']}: {item['description']}\n"
+        # Use AI summary if available, otherwise fall back to description
+        if 'ai_summary' in item:
+            prompt += f"- {item['title']}:\n{item['ai_summary']}\n\n"
+        else:
+            prompt += f"- {item['title']}: {item['description']}\n"
+            
     response = model.invoke([HumanMessage(content=prompt)])
     return response.content
 

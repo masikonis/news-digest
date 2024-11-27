@@ -42,7 +42,20 @@ Edit the `src/config.json` file with the following structure if necessary:
     "base_folder": "weekly_news",
     "retry_count": 3,
     "retry_delay": 2,
-    "log_file": "output.log"
+    "log_file": "output.log",
+    "content_enrichment": {
+        "enabled": true,
+        "scraping_delay": 2,
+        "max_retries": 3,
+        "sources": {
+            "www.lrt.lt": {
+                "selector": "article.article-block"
+            },
+            "www.suvalkietis.lt": {
+                "selector": "div.single-post-content"
+            }
+        }
+    }
 }
 ```
 

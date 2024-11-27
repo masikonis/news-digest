@@ -90,6 +90,15 @@ def parse_rss_item(item, category: str) -> Dict[str, Any]:
     post_id = item.find('guid').text.strip() if item.find('guid') is not None else None
     pub_date_str = item.find('pubDate').text.strip() if item.find('pubDate') is not None else None
     
+    # Use guid as URL if link is not present
+    url = item.find('link')
+    if url is not None:
+        url = url.text.strip()
+    elif post_id and post_id.startswith('http'):
+        url = post_id
+    else:
+        return None  # Skip items without URL
+    
     if pub_date_str:
         try:
             pub_date = datetime.strptime(pub_date_str, '%a, %d %b %Y %H:%M:%S %z')
@@ -105,7 +114,8 @@ def parse_rss_item(item, category: str) -> Dict[str, Any]:
         'title': title,
         'description': description,
         'category': category,
-        'pub_date': pub_date
+        'pub_date': pub_date,
+        'url': url
     }
 
 def fetch_rss_feed(url: str, headers: Dict[str, str]) -> str:
