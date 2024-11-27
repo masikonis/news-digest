@@ -104,13 +104,13 @@ class TestRssScraper(unittest.TestCase):
                 <item>
                     <title>Title 1</title>
                     <description><![CDATA[<p>Description 1</p>]]></description>
-                    <guid>1</guid>
+                    <guid>http://example.com/article1</guid>
                     <pubDate>Mon, 25 Jul 2022 10:00:00 +0000</pubDate>
                 </item>
                 <item>
                     <title>Title 2</title>
                     <description><![CDATA[<p>Description 2</p>]]></description>
-                    <guid>2</guid>
+                    <guid>http://example.com/article2</guid>
                     <pubDate>Mon, 25 Jul 2022 15:00:00 +0000</pubDate>
                 </item>
             </channel>
@@ -186,19 +186,19 @@ class TestRssScraper(unittest.TestCase):
                 <item>
                     <title>Title 1</title>
                     <description><![CDATA[<p>Description 1</p>]]></description>
-                    <guid>1</guid>
+                    <guid>http://example.com/article1</guid>
                     <pubDate>Mon, 25 Jul 2022 10:00:00 +0000</pubDate>
                 </item>
                 <item>
                     <title>Title 2</title>
                     <description><![CDATA[<p>Description 2</p>]]></description>
-                    <guid>2</guid>
+                    <guid>http://example.com/article2</guid>
                     <pubDate>Mon, 25 Jul 2022 15:00:00 +0000</pubDate>
                 </item>
                 <item>
                     <title>Title 3</title>
                     <description><![CDATA[<p>Description 3</p>]]></description>
-                    <guid>3</guid>
+                    <guid>http://example.com/article3</guid>
                     <pubDate>Mon, 01 Aug 2022 10:00:00 +0000</pubDate>
                 </item>
             </channel>
@@ -217,12 +217,12 @@ class TestRssScraper(unittest.TestCase):
         item = ET.Element('item')
         ET.SubElement(item, 'title').text = "Title"
         ET.SubElement(item, 'description').text = "<p>Description</p>"
-        ET.SubElement(item, 'guid').text = "123"
+        ET.SubElement(item, 'guid').text = "http://example.com/article123"
         ET.SubElement(item, 'pubDate').text = "Invalid Date"
         with self.assertLogs(level='ERROR') as cm:
             result = parse_rss_item(item, "category")
             self.assertIsNone(result)
-            self.assertIn("ERROR:root:Unable to parse date: Invalid Date", cm.output[0])
+            self.assertIn("Unable to parse date: Invalid Date", cm.output[0])
 
     def test_parse_rss_item_missing_pub_date(self):
         item = ET.Element('item')

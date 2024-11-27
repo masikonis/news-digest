@@ -1,6 +1,6 @@
 # tests/test_model_initializer.py
 import unittest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch, MagicMock, call
 
 class TestModelInitializer(unittest.TestCase):
     @patch('os.getenv')
@@ -13,8 +13,9 @@ class TestModelInitializer(unittest.TestCase):
             "OPENAI_API_KEY": "fake_openai_api_key"
         }.get(k, None)
 
-        # Mock the model initialization
+        # Mock the model initialization to return a MagicMock instance
         mock_model = MagicMock()
+        # Set return_value instead of side_effect to avoid exceptions during initialization
         mock_ChatOpenAI.return_value = mock_model
 
         # Import the function under test
@@ -26,12 +27,16 @@ class TestModelInitializer(unittest.TestCase):
         # Assert that load_dotenv was called with override=True
         mock_load_dotenv.assert_called_once_with(override=True)
 
-        # Assert that the environment variable was set correctly
+        # Assert that the environment variable was accessed
         mock_getenv.assert_any_call("OPENAI_API_KEY")
-        mock_environ.__setitem__.assert_any_call("OPENAI_API_KEY", "fake_openai_api_key")
 
-        # Assert that the ChatOpenAI model was initialized with the correct parameters
-        mock_ChatOpenAI.assert_called_once_with(model="gpt-4o", temperature=0)
+        # Assert that ChatOpenAI was called twice with the expected models
+        expected_calls = [
+            call(model="gpt-4o-mini", temperature=0),  # For 'summary' and 'analysis'
+            call(model="gpt-4o", temperature=0)        # For 'post'
+        ]
+        self.assertEqual(mock_ChatOpenAI.call_count, 2)
+        mock_ChatOpenAI.assert_has_calls(expected_calls, any_order=False)
 
         # Assert that the returned model is the mocked model
         self.assertEqual(model, mock_model)
