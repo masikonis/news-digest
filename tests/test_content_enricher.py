@@ -234,5 +234,49 @@ class TestContentEnricher(unittest.TestCase):
             
         mock_main.assert_called_once_with('test_config.json')
 
+    @patch('src.content_enricher.initialize_model')
+    @patch('src.content_enricher.os.path.exists')
+    @patch('src.content_enricher.load_config')
+    @patch('builtins.open', new_callable=mock_open)
+    def test_enrich_weekly_news_no_items_to_process(self, mock_file, mock_load_config, mock_exists, mock_init_model):
+        mock_load_config.return_value = self.test_config
+        mock_exists.return_value = True
+        
+        # Mock empty news list
+        mock_file.return_value.__enter__.return_value.read.return_value = '[]'
+        
+        enricher = ContentEnricher("mock_config.json")
+        enricher.enrich_weekly_news(2024, 1)
+        
+        # Verify no write operations occurred
+        mock_file.return_value.__enter__.return_value.write.assert_not_called()
+
+    @patch('src.content_enricher.initialize_model')
+    @patch('src.content_enricher.os.path.exists')
+    @patch('src.content_enricher.load_config')
+    @patch('builtins.open', new_callable=mock_open)
+    def test_main_with_existing_file(self, mock_file, mock_load_config, mock_exists, mock_init_model):
+        mock_load_config.return_value = self.test_config
+        mock_exists.return_value = True
+        mock_file.return_value.__enter__.return_value.read.return_value = json.dumps([
+            {"id": "test", "title": "test", "ai_summary": "existing"}
+        ])
+        
+        from src.content_enricher import main
+        main("test_config.json")
+        
+        mock_exists.assert_called()
+        mock_file.assert_called()
+
+    def test_run_function(self):
+        with patch('src.content_enricher.parse_arguments') as mock_parse_args:
+            with patch('src.content_enricher.main') as mock_main:
+                mock_parse_args.return_value = MagicMock(config='test_config.json')
+                
+                from src.content_enricher import run
+                run()
+                
+                mock_main.assert_called_once_with('test_config.json')
+
 if __name__ == '__main__':
     unittest.main()
