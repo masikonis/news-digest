@@ -3,19 +3,19 @@
 <plist version="1.0">
 <dict>
     <key>Label</key>
-    <string>com.example.news-digest-enricher</string>
+    <string>com.nerijus.news-digest-enricher</string>
     <key>ProgramArguments</key>
     <array>
-        <string>/path/to/your/python3</string>
-        <string>/path/to/your/content_enricher.py</string>
+        <string>/Users/nerijus/Python/masikonis/news-digest/langchain_env/bin/python3</string>
+        <string>/Users/nerijus/Python/masikonis/news-digest/src/content_enricher.py</string>
         <string>--config</string>
-        <string>/path/to/your/config.json</string>
+        <string>/Users/nerijus/Python/masikonis/news-digest/src/config.json</string>
     </array>
     <key>StartInterval</key>
     <integer>5400</integer>
     <key>StandardOutPath</key>
-    <string>/path/to/your/output.log</string>
+    <string>/Users/nerijus/Python/masikonis/news-digest/output.log</string>
     <key>StandardErrorPath</key>
-    <string>/path/to/your/output.log</string>
+    <string>/Users/nerijus/Python/masikonis/news-digest/output.log</string>
 </dict>
-</plist> 
+</plist>
