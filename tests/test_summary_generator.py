@@ -3,14 +3,16 @@ import unittest
 import os
 import tempfile
 import json
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch, MagicMock, call
 from src.summary_generator import (
     get_latest_json_file,
     read_json_file,
     sort_by_category,
     generate_summary,
     generate_summaries_by_category,
-    main
+    main,
+    deduplicate_news_items,
+    evaluate_story_importance
 )
 
 class TestSummaryGenerator(unittest.TestCase):
@@ -68,6 +70,29 @@ class TestSummaryGenerator(unittest.TestCase):
         self.assertEqual(summary, "Test summary")
         mock_model.invoke.assert_called_once()
 
+    def test_deduplicate_news_items(self):
+        duplicate_news = [
+            {"title": "Same News", "description": "Description 1", "category": "Politics", "ai_summary": "Long summary"},
+            {"title": "Same News", "description": "Description 2", "category": "Politics", "ai_summary": "Short"},
+            {"title": "Different News", "description": "Description 3", "category": "Politics"},
+        ]
+        
+        result = deduplicate_news_items(duplicate_news)
+        self.assertEqual(len(result), 2)  # Should keep only unique stories
+        # Should keep the version with longer AI summary
+        self.assertEqual(result[0]['ai_summary'], "Long summary")
+
+    def test_evaluate_story_importance(self):
+        news_items = [
+            {"title": f"News {i}", "description": f"Description {i}", "category": "Politics"}
+            for i in range(20)
+        ]
+        
+        result = evaluate_story_importance(news_items, "Politics")
+        # Should return between min_stories and max_stories
+        self.assertGreaterEqual(len(result), 7)
+        self.assertLessEqual(len(result), 14)
+
     @patch('src.summary_generator.os.path.exists')
     @patch('src.summary_generator.os.makedirs')
     @patch('src.summary_generator.setup_logging')
@@ -75,9 +100,14 @@ class TestSummaryGenerator(unittest.TestCase):
     @patch('src.summary_generator.get_latest_json_file')
     @patch('src.summary_generator.read_json_file')
     @patch('src.summary_generator.generate_summary')
-    def test_generate_summaries_by_category_full(self, mock_generate_summary, mock_read_json_file, 
-                                                 mock_get_latest_json_file, mock_load_config, 
-                                                 mock_setup_logging, mock_makedirs, mock_exists):
+    @patch('src.summary_generator.evaluate_story_importance')
+    @patch('src.summary_generator.deduplicate_news_items')
+    def test_generate_summaries_by_category_full(
+        self, mock_deduplicate, mock_evaluate_importance, mock_generate_summary, 
+        mock_read_json_file, mock_get_latest_json_file, 
+        mock_load_config, mock_setup_logging, 
+        mock_makedirs, mock_exists
+    ):
         with tempfile.TemporaryDirectory() as temp_dir:
             # Setup mocks
             mock_load_config.return_value = {
@@ -85,29 +115,53 @@ class TestSummaryGenerator(unittest.TestCase):
                 "log_file": os.path.join(temp_dir, "test.log")
             }
             mock_get_latest_json_file.return_value = "test_file.json"
-            mock_read_json_file.return_value = [
+            
+            test_news = [
                 {"title": "News 1", "description": "Description 1", "category": "Politics"},
                 {"title": "News 2", "description": "Description 2", "category": "Technology"},
                 {"title": "News 3", "description": "Description 3", "category": "Uncategorized"},
             ]
-            mock_generate_summary.side_effect = ["Politics summary", "Technology summary", "Uncategorized summary"]
+            mock_read_json_file.return_value = test_news
+            mock_deduplicate.return_value = test_news
+            
+            # Mock evaluate_story_importance to return items for its specific category
+            def evaluate_mock(items, category):
+                return [item for item in items if item['category'] == category]
+            mock_evaluate_importance.side_effect = evaluate_mock
+            
+            mock_generate_summary.side_effect = [
+                "Politics summary",
+                "Technology summary",
+                "Uncategorized summary"
+            ]
             mock_exists.return_value = False
 
-            # Call the function
             result = generate_summaries_by_category("test_config.json")
 
-            # Assertions
-            self.assertEqual(result, {
+            expected_result = {
                 "Politics": "Politics summary",
                 "Technology": "Technology summary",
                 "Uncategorized": "Uncategorized summary"
-            })
+            }
+            
+            self.assertEqual(result, expected_result)
+            
+            # Verify all mocks were called appropriately
             mock_load_config.assert_called_once_with("test_config.json")
             mock_get_latest_json_file.assert_called_once()
             mock_read_json_file.assert_called_once()
+            mock_deduplicate.assert_called_once_with(test_news)
             self.assertEqual(mock_generate_summary.call_count, 3)
+            self.assertEqual(mock_evaluate_importance.call_count, 3)
             mock_makedirs.assert_called_once()
             mock_setup_logging.assert_called_once_with(os.path.join(temp_dir, "test.log"))
+
+            # Add assertions for evaluate_importance calls
+            expected_evaluate_calls = [
+                call([item for item in test_news if item['category'] == cat], cat)
+                for cat in ['Politics', 'Technology', 'Uncategorized']
+            ]
+            mock_evaluate_importance.assert_has_calls(expected_evaluate_calls, any_order=True)
 
     @patch('src.summary_generator.logging.error')
     @patch('src.summary_generator.load_config')
