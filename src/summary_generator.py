@@ -13,16 +13,43 @@ from difflib import SequenceMatcher
 model = initialize_model('advanced', temperature=0.7)
 
 def get_latest_json_file(directory: str) -> str:
+    """Find the most recently modified JSON file in a directory.
+
+    Args:
+        directory (str): Directory path to search in
+
+    Returns:
+        str: Path to the most recent JSON file
+
+    Raises:
+        FileNotFoundError: If no JSON files exist in the directory
+    """
     json_files = glob.glob(os.path.join(directory, "*.json"))
     if not json_files:
         raise FileNotFoundError("No JSON files found in the directory.")
     return max(json_files, key=os.path.getmtime)
 
 def read_json_file(file_path: str) -> List[Dict[str, Any]]:
+    """Read and parse a JSON file.
+
+    Args:
+        file_path (str): Path to the JSON file
+
+    Returns:
+        List[Dict[str, Any]]: Parsed JSON content
+    """
     with open(file_path, 'r') as file:
         return json.load(file)
 
 def sort_by_category(news_items: List[Dict[str, Any]]) -> Dict[str, List[Dict[str, Any]]]:
+    """Sort news items into categories.
+
+    Args:
+        news_items (List[Dict[str, Any]]): List of news items
+
+    Returns:
+        Dict[str, List[Dict[str, Any]]]: News items grouped by category
+    """
     categorized_news = {}
     for item in news_items:
         category = item.get('category', 'Uncategorized')
@@ -32,6 +59,17 @@ def sort_by_category(news_items: List[Dict[str, Any]]) -> Dict[str, List[Dict[st
     return categorized_news
 
 def generate_summary(news_items: List[Dict[str, Any]]) -> str:
+    """Generate an AI summary of multiple news items.
+
+    Args:
+        news_items (List[Dict[str, Any]]): List of news items to summarize
+
+    Returns:
+        str: AI-generated summary of the news items
+
+    Note:
+        Uses AI model to generate a coherent summary in Lithuanian
+    """
     prompt = (
         "Tu esi dirbtinio intelekto naujienų apžvalgininkas. Apibendrink šias naujienas į vieną glaustą paragrafą, "
         "apie 120 žodžių, pabrėždamas svarbiausius momentus ir labiausiai įtakojančius įvykius. Šis apibendrinimas skirtas žmogui, kuris nesekė naujienų ir nori sužinoti "
@@ -39,7 +77,6 @@ def generate_summary(news_items: List[Dict[str, Any]]) -> str:
     )
     
     for item in news_items:
-        # Use AI summary if available, otherwise fall back to description
         content = item.get('ai_summary') or item.get('description', '')
         prompt += f"- {item['title']}:\n{content}\n\n"
             
@@ -47,17 +84,36 @@ def generate_summary(news_items: List[Dict[str, Any]]) -> str:
     return response.content
 
 def similar_titles(title1: str, title2: str, threshold: float = 0.8) -> bool:
-    """Check if two titles are similar using fuzzy string matching."""
+    """Check if two titles are similar using fuzzy string matching.
+
+    Args:
+        title1 (str): First title
+        title2 (str): Second title
+        threshold (float, optional): Similarity threshold. Defaults to 0.8.
+
+    Returns:
+        bool: True if titles are similar above threshold
+    """
     return SequenceMatcher(None, title1.lower(), title2.lower()).ratio() > threshold
 
 def deduplicate_news_items(news_items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    """Remove duplicate news items, keeping the most detailed version."""
+    """Remove duplicate news items, keeping the most detailed version.
+
+    Args:
+        news_items (List[Dict[str, Any]]): List of news items
+
+    Returns:
+        List[Dict[str, Any]]: Deduplicated news items
+
+    Note:
+        Uses fuzzy matching to identify similar titles
+        Prioritizes items with longer AI summaries
+    """
     unique_news = []
     seen_titles = set()
     
     logging.info(f"Starting deduplication of {len(news_items)} news items")
     
-    # Sort by AI summary length to prioritize more detailed versions
     sorted_news = sorted(
         news_items,
         key=lambda x: len(x.get('ai_summary', '')) if isinstance(x.get('ai_summary', ''), str) else 0,
@@ -78,11 +134,21 @@ def deduplicate_news_items(news_items: List[Dict[str, Any]]) -> List[Dict[str, A
     return unique_news
 
 def evaluate_story_importance(news_items: List[Dict[str, Any]], category: str, percentage: float = 0.25, min_stories: int = 7, max_stories: int = 14) -> List[Dict[str, Any]]:
+    """Evaluate and select top stories based on their importance using AI.
+
+    Args:
+        news_items (List[Dict[str, Any]]): List of news items to evaluate
+        category (str): News category
+        percentage (float, optional): Target percentage of stories to keep. Defaults to 0.25.
+        min_stories (int, optional): Minimum number of stories to keep. Defaults to 7.
+        max_stories (int, optional): Maximum number of stories to keep. Defaults to 14.
+
+    Returns:
+        List[Dict[str, Any]]: Selected important stories
+
+    Note:
+        Uses AI to evaluate story importance and ensure diverse coverage
     """
-    Evaluate and select top stories based on their importance using AI.
-    """
-    
-    # First assign simple numeric IDs to each story
     for idx, item in enumerate(news_items):
         item['simple_id'] = str(idx + 1)
     
@@ -115,7 +181,6 @@ def evaluate_story_importance(news_items: List[Dict[str, Any]], category: str, p
         "Naujienos:\n"
     )
     
-    # Add each news item to the prompt using simple IDs
     for item in news_items:
         prompt += f"#{item['simple_id']}: {item['title']}\n"
         if 'ai_summary' in item and isinstance(item.get('ai_summary'), str):
@@ -125,17 +190,13 @@ def evaluate_story_importance(news_items: List[Dict[str, Any]], category: str, p
     response = model.invoke([HumanMessage(content=prompt)])
     
     try:
-        # Parse response to get ordered list of IDs
         important_ids = [id.strip() for id in response.content.split(',')]
-        
-        # Get top stories while preserving AI-determined order
         top_stories = []
         for simple_id in important_ids:
             matching_items = [item for item in news_items if item['simple_id'] == simple_id]
             if matching_items:
                 top_stories.append(matching_items[0])
         
-        # If we don't have enough stories, add more from the original list
         if len(top_stories) < target_stories:
             remaining_items = [item for item in news_items if item not in top_stories]
             top_stories.extend(remaining_items[:target_stories - len(top_stories)])
@@ -148,6 +209,20 @@ def evaluate_story_importance(news_items: List[Dict[str, Any]], category: str, p
         return sorted(news_items, key=lambda x: x['pub_date'], reverse=True)[:target_stories]
 
 def generate_summaries_by_category(config_path: str) -> Dict[str, str]:
+    """Generate AI summaries for news items grouped by category.
+
+    Args:
+        config_path (str): Path to the configuration file
+
+    Returns:
+        Dict[str, str]: Mapping of categories to their AI-generated summaries
+
+    Note:
+        - Sets up logging based on configuration
+        - Handles file paths relative to config location
+        - Processes the most recent news file
+        - Includes deduplication and importance evaluation
+    """
     config = load_config(config_path)
     config_dir = os.path.dirname(os.path.abspath(config_path))
     root_dir = os.path.abspath(os.path.join(config_dir, ".."))
@@ -184,6 +259,14 @@ def generate_summaries_by_category(config_path: str) -> Dict[str, str]:
     return summaries_by_category
 
 def main(config_path: str):
+    """Main entry point for generating news summaries.
+
+    Args:
+        config_path (str): Path to the configuration file
+
+    Note:
+        Prints generated summaries to stdout, grouped by category
+    """
     summaries = generate_summaries_by_category(config_path)
     for category, summary in summaries.items():
         print(f"\n{category}\n{summary}")

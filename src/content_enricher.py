@@ -12,14 +12,41 @@ from model_initializer import initialize_model
 from langchain.schema import HumanMessage
 
 class ContentEnricher:
+    """Enriches news articles with AI-generated summaries.
+
+    This class handles fetching full article content from various news sources
+    and generates AI-powered summaries for each article.
+
+    Attributes:
+        config (Dict): Main configuration settings
+        enrichment_config (Dict): Content enrichment specific settings
+        base_folder (str): Base directory for storing news files
+        model: Initialized AI model for content analysis
+    """
+
     def __init__(self, config_path: str):
+        """Initialize the ContentEnricher with configuration settings.
+
+        Args:
+            config_path (str): Path to the configuration JSON file
+        """
         self.config = load_config(config_path)
         self.enrichment_config = self.config.get("content_enrichment", {})
         self.base_folder = self.config["base_folder"]
         self.model = initialize_model('basic', temperature=0.3)
         
     def get_full_content(self, url: str) -> Optional[str]:
-        """Fetch and extract full content from a news article URL."""
+        """Fetch and extract full content from a news article URL.
+
+        Args:
+            url (str): The URL of the news article
+
+        Returns:
+            Optional[str]: The extracted article content, or None if extraction fails
+
+        Raises:
+            requests.RequestException: If the HTTP request fails
+        """
         domain = urlparse(url).netloc
         source_config = self.enrichment_config["sources"].get(domain)
         
@@ -47,7 +74,15 @@ class ContentEnricher:
             return None
 
     def generate_article_analysis(self, title: str, content: str) -> str:
-        """Generate a concise summary of the article."""
+        """Generate a concise summary of the article using AI.
+
+        Args:
+            title (str): The article title
+            content (str): The full article content
+
+        Returns:
+            str: AI-generated summary of the article
+        """
         prompt = (
             "Pateik glaustą ir informatyvią straipsnio santrauką (apie 150 žodžių), "
             "išryškindamas svarbiausius faktus ir įžvalgas. "
@@ -60,7 +95,21 @@ class ContentEnricher:
         return response.content
 
     def enrich_weekly_news(self, year: int, week: int) -> None:
-        """Enrich the weekly news with AI-generated summaries."""
+        """Enrich weekly news articles with AI-generated summaries.
+
+        Processes all articles from the specified week that haven't been
+        enriched yet or previously failed. Saves results after processing
+        each article.
+
+        Args:
+            year (int): The year of the news items
+            week (int): The week number (1-53)
+
+        Note:
+            - Skips processing if enrichment is disabled in config
+            - Implements rate limiting between requests
+            - Marks failed articles to prevent reprocessing
+        """
         if not self.enrichment_config.get("enabled", False):
             return
 
@@ -116,6 +165,11 @@ class ContentEnricher:
         logging.info(f"Enrichment complete. Successfully processed {processed} articles")
 
 def main(config_path: str):
+    """Main entry point for the content enrichment process.
+
+    Args:
+        config_path (str): Path to the configuration file
+    """
     from datetime import datetime
     
     # Setup logging first
@@ -140,12 +194,18 @@ def main(config_path: str):
     enricher.enrich_weekly_news(year, week)
 
 def parse_arguments():
+    """Parse command line arguments.
+
+    Returns:
+        argparse.Namespace: Parsed command line arguments
+    """
     import argparse
     parser = argparse.ArgumentParser(description="Content Enricher for Weekly News")
     parser.add_argument('--config', type=str, default='src/config.json', help='Path to the configuration file')
     return parser.parse_args()
 
 def run():
+    """Entry point for the script when run directly."""
     args = parse_arguments()
     main(args.config)
 
