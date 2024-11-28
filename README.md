@@ -1,4 +1,4 @@
-# AI News Digest
+# News Digest
 
 [![codecov](https://codecov.io/gh/masikonis/news-digest/branch/main/graph/badge.svg)](https://codecov.io/gh/masikonis/news-digest)
 
