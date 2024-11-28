@@ -12,8 +12,8 @@ class ModelManager:
         
         # Initialize different models
         self.models = {
-            'analysis': ChatOpenAI(model="gpt-4o-mini", temperature=0),  # Full article analysis
-            'summary': ChatOpenAI(model="gpt-4o", temperature=0),  # Weekly digest
+            'basic': ChatOpenAI(model="gpt-4o-mini", temperature=0),
+            'advanced': ChatOpenAI(model="gpt-4o", temperature=0),
             'embeddings': None  # We'll add this later when needed
         }
     

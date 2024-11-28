@@ -16,7 +16,7 @@ class ContentEnricher:
         self.config = load_config(config_path)
         self.enrichment_config = self.config.get("content_enrichment", {})
         self.base_folder = self.config["base_folder"]
-        self.model = initialize_model('analysis')  # Use analysis model
+        self.model = initialize_model('basic')
         
     def get_full_content(self, url: str) -> Optional[str]:
         """Fetch and extract full content from a news article URL."""

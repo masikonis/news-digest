@@ -10,7 +10,7 @@ from model_initializer import initialize_model
 from utils import setup_logging, load_config
 from difflib import SequenceMatcher
 
-model = initialize_model('summary')
+model = initialize_model('advanced')
 
 def get_latest_json_file(directory: str) -> str:
     json_files = glob.glob(os.path.join(directory, "*.json"))
