@@ -21,8 +21,8 @@ class TestModelInitializer(unittest.TestCase):
         # Import the function under test
         from src.model_initializer import initialize_model
 
-        # Call the function
-        model = initialize_model()
+        # Call the function with 'basic' purpose instead of default
+        model = initialize_model('basic')
 
         # Assert that load_dotenv was called with override=True
         mock_load_dotenv.assert_called_once_with(override=True)
@@ -30,12 +30,12 @@ class TestModelInitializer(unittest.TestCase):
         # Assert that the environment variable was accessed
         mock_getenv.assert_any_call("OPENAI_API_KEY")
 
-        # Assert that ChatOpenAI was called twice with the expected models
+        # Update the expected calls to match new model configurations
         expected_calls = [
-            call(model="gpt-4o-mini", temperature=0),  # For 'summary' and 'analysis'
-            call(model="gpt-4o", temperature=0)        # For 'post'
+            call(model="gpt-4o-mini", temperature=0),  # For 'basic'
         ]
-        self.assertEqual(mock_ChatOpenAI.call_count, 2)
+        # Update assertion to expect only one call
+        self.assertEqual(mock_ChatOpenAI.call_count, 1)
         mock_ChatOpenAI.assert_has_calls(expected_calls, any_order=False)
 
         # Assert that the returned model is the mocked model
