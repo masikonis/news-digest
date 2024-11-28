@@ -72,8 +72,11 @@ class ContentEnricher:
         with open(weekly_file, 'r') as f:
             news_items = json.load(f)
 
-        # Find articles that need processing
-        to_process = [item for item in news_items if 'ai_summary' not in item]
+        # Find articles that need processing (exclude previously failed ones)
+        to_process = [item for item in news_items 
+                     if 'ai_summary' not in item 
+                     and 'ai_summary_failed' not in item]
+        
         if not to_process:
             logging.info("No articles to process")
             return
@@ -95,15 +98,20 @@ class ContentEnricher:
                 
                 processed += 1
                 logging.info(f"✓ Processed {processed}/{len(to_process)}")
-                
-                # Save after each successful processing
-                with open(weekly_file, 'w', encoding='utf-8') as f:
-                    json.dump(news_items, f, ensure_ascii=False, indent=4)
-                
-                # Rate limiting
-                time.sleep(self.enrichment_config.get("scraping_delay", 2))
             else:
+                # Mark the article as failed
+                for i, news_item in enumerate(news_items):
+                    if news_item['id'] == item['id']:
+                        news_items[i]['ai_summary_failed'] = True
+                        break
                 logging.error(f"Failed to fetch content: {item['title']}")
+            
+            # Save after each article (success or failure)
+            with open(weekly_file, 'w', encoding='utf-8') as f:
+                json.dump(news_items, f, ensure_ascii=False, indent=4)
+            
+            # Rate limiting
+            time.sleep(self.enrichment_config.get("scraping_delay", 2))
 
         logging.info(f"Enrichment complete. Successfully processed {processed} articles")
 
@@ -131,6 +139,16 @@ def main(config_path: str):
     
     enricher.enrich_weekly_news(year, week)
 
+def parse_arguments():
+    import argparse
+    parser = argparse.ArgumentParser(description="Content Enricher for Weekly News")
+    parser.add_argument('--config', type=str, default='src/config.json', help='Path to the configuration file')
+    return parser.parse_args()
+
+def run():
+    args = parse_arguments()
+    main(args.config)
+
 if __name__ == "__main__":
-    main("src/config.json") 
+    run() 
     
