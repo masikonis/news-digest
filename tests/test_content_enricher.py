@@ -6,6 +6,7 @@ import tempfile
 from unittest.mock import patch, MagicMock, call, mock_open
 from bs4 import BeautifulSoup
 from src.content_enricher import ContentEnricher
+import requests
 
 class TestContentEnricher(unittest.TestCase):
     def setUp(self):
@@ -63,6 +64,34 @@ class TestContentEnricher(unittest.TestCase):
         
         self.assertIsNone(content)
         mock_get.assert_not_called()
+
+    @patch('src.content_enricher.initialize_model')
+    @patch('src.content_enricher.requests.get')
+    @patch('src.content_enricher.load_config')
+    def test_get_full_content_request_error(self, mock_load_config, mock_get, mock_init_model):
+        mock_load_config.return_value = self.test_config
+        mock_get.side_effect = requests.RequestException("Connection error")
+        
+        enricher = ContentEnricher("mock_config.json")
+        content = enricher.get_full_content("https://example.com/article")
+        
+        self.assertIsNone(content)
+        mock_get.assert_called_once()
+
+    @patch('src.content_enricher.initialize_model')
+    @patch('src.content_enricher.requests.get')
+    @patch('src.content_enricher.load_config')
+    def test_get_full_content_no_matching_selector(self, mock_load_config, mock_get, mock_init_model):
+        mock_load_config.return_value = self.test_config
+        mock_response = MagicMock()
+        mock_response.text = '<html><div class="wrong-class">Test content</div></html>'
+        mock_get.return_value = mock_response
+        
+        enricher = ContentEnricher("mock_config.json")
+        content = enricher.get_full_content("https://example.com/article")
+        
+        self.assertIsNone(content)
+        mock_get.assert_called_once()
 
     @patch('src.content_enricher.initialize_model')
     @patch('src.content_enricher.load_config')
@@ -134,20 +163,76 @@ class TestContentEnricher(unittest.TestCase):
         mock_exists.assert_called_once()
         mock_file.assert_called()
 
-    @patch('src.content_enricher.logging')
     @patch('src.content_enricher.initialize_model')
     @patch('src.content_enricher.os.path.exists')
     @patch('src.content_enricher.load_config')
-    def test_main_function(self, mock_load_config, mock_exists, mock_init_model, mock_logging):
+    @patch('builtins.open', new_callable=mock_open)
+    def test_enrich_weekly_news_no_articles_to_process(self, mock_file, mock_load_config, mock_exists, mock_init_model):
         mock_load_config.return_value = self.test_config
         mock_exists.return_value = True
         
-        with patch('builtins.open', mock_open(read_data='[]')):
-            from src.content_enricher import main
-            main("mock_config.json")
+        # All articles already processed
+        test_news = [
+            {
+                "id": "https://example.com/article1",
+                "title": "Test Article 1",
+                "ai_summary": "Existing summary"
+            }
+        ]
+        mock_file.return_value.__enter__.return_value.read.return_value = json.dumps(test_news)
         
-        mock_logging.basicConfig.assert_called_once()
-        mock_exists.assert_called()
+        enricher = ContentEnricher("mock_config.json")
+        enricher.enrich_weekly_news(2024, 1)
+        
+        # Should only open file for reading, not writing
+        self.assertEqual(mock_file.call_count, 1)
+
+    @patch('src.content_enricher.initialize_model')
+    @patch('src.content_enricher.os.path.exists')
+    @patch('src.content_enricher.load_config')
+    @patch('builtins.open', new_callable=mock_open)
+    def test_enrich_weekly_news_content_fetch_failure(self, mock_file, mock_load_config, mock_exists, mock_init_model):
+        mock_load_config.return_value = self.test_config
+        mock_exists.return_value = True
+        
+        # Mock file read operation
+        mock_file.return_value.__enter__.return_value.read.return_value = json.dumps([
+            {"id": "https://example.com/article1", "title": "Test Article 1"}
+        ])
+        
+        enricher = ContentEnricher("mock_config.json")
+        with patch.object(enricher, 'get_full_content', return_value=None):
+            enricher.enrich_weekly_news(2024, 1)
+        
+        # Just verify that write was called
+        mock_file.return_value.__enter__.return_value.write.assert_called()
+
+    @patch('argparse.ArgumentParser')
+    def test_parse_arguments(self, mock_parser_class):
+        mock_parser = MagicMock()
+        mock_parser.parse_args.return_value = MagicMock(config='test_config.json')
+        mock_parser_class.return_value = mock_parser
+        
+        from src.content_enricher import parse_arguments
+        args = parse_arguments()
+        
+        self.assertEqual(args.config, 'test_config.json')
+        mock_parser.add_argument.assert_called_once_with(
+            '--config', 
+            type=str, 
+            default='src/config.json', 
+            help='Path to the configuration file'
+        )
+
+    @patch('src.content_enricher.main')
+    def test_run(self, mock_main):
+        from src.content_enricher import run
+        
+        with patch('src.content_enricher.parse_arguments') as mock_parse_args:
+            mock_parse_args.return_value = MagicMock(config='test_config.json')
+            run()
+            
+        mock_main.assert_called_once_with('test_config.json')
 
 if __name__ == '__main__':
     unittest.main()
