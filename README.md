@@ -1,6 +1,6 @@
 # AI News Digest
 
-[![codecov](https://codecov.io/gh/masikonis/ai-news-digest/branch/main/graph/badge.svg)](https://codecov.io/gh/masikonis/ai-news-digest)
+[![codecov](https://codecov.io/gh/masikonis/news-digest/branch/main/graph/badge.svg)](https://codecov.io/gh/masikonis/news-digest)
 
 This script scrapes news articles from RSS feeds, leverages AI to analyze and highlight the most significant stories, and delivers a concise summary via email.
 
