@@ -10,7 +10,7 @@ from model_initializer import initialize_model
 from utils import setup_logging, load_config
 from difflib import SequenceMatcher
 
-model = initialize_model('advanced')
+model = initialize_model('advanced', temperature=0.7)
 
 def get_latest_json_file(directory: str) -> str:
     json_files = glob.glob(os.path.join(directory, "*.json"))
@@ -77,7 +77,7 @@ def deduplicate_news_items(news_items: List[Dict[str, Any]]) -> List[Dict[str, A
     logging.info(f"Deduplication complete. Reduced from {len(news_items)} to {len(unique_news)} items")
     return unique_news
 
-def evaluate_story_importance(news_items: List[Dict[str, Any]], category: str, percentage: float = 0.25, min_stories: int = 5, max_stories: int = 15) -> List[Dict[str, Any]]:
+def evaluate_story_importance(news_items: List[Dict[str, Any]], category: str, percentage: float = 0.25, min_stories: int = 7, max_stories: int = 14) -> List[Dict[str, Any]]:
     """
     Evaluate and select top stories based on their importance using AI.
     """
@@ -93,9 +93,6 @@ def evaluate_story_importance(news_items: List[Dict[str, Any]], category: str, p
             round(len(news_items) * percentage)
         )
     )
-    
-    logging.info(f"Category '{category}' has {len(news_items)} stories")
-    logging.info(f"Targeting {target_stories} stories ({percentage*100}% with min={min_stories}, max={max_stories})")
     
     if len(news_items) <= target_stories:
         return news_items
@@ -125,14 +122,11 @@ def evaluate_story_importance(news_items: List[Dict[str, Any]], category: str, p
             prompt += f"Santrauka: {item['ai_summary'][:200]}...\n"
         prompt += "\n"
     
-    logging.info("Sending request to AI for evaluation...")
     response = model.invoke([HumanMessage(content=prompt)])
-    logging.info("Received AI response")
     
     try:
         # Parse response to get ordered list of IDs
         important_ids = [id.strip() for id in response.content.split(',')]
-        logging.info(f"AI returned {len(important_ids)} story IDs")
         
         # Get top stories while preserving AI-determined order
         top_stories = []
@@ -143,11 +137,9 @@ def evaluate_story_importance(news_items: List[Dict[str, Any]], category: str, p
         
         # If we don't have enough stories, add more from the original list
         if len(top_stories) < target_stories:
-            logging.info(f"Not enough stories selected ({len(top_stories)}), adding more to reach {target_stories}")
             remaining_items = [item for item in news_items if item not in top_stories]
             top_stories.extend(remaining_items[:target_stories - len(top_stories)])
         
-        logging.info(f"Final selection: {len(top_stories)} stories")
         return top_stories[:target_stories]
     except Exception as e:
         logging.error(f"Error processing AI response: {e}")

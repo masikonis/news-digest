@@ -10,20 +10,25 @@ class ModelManager:
         openai_api_key = os.getenv("OPENAI_API_KEY")
         os.environ["OPENAI_API_KEY"] = openai_api_key
         
-        # Initialize different models
-        self.models = {
-            'basic': ChatOpenAI(model="gpt-4o-mini", temperature=0),
-            'advanced': ChatOpenAI(model="gpt-4o", temperature=0),
+        # Initialize model configurations (not instances)
+        self.model_configs = {
+            'basic': {"model": "gpt-4o-mini"},
+            'advanced': {"model": "gpt-4o"},
             'embeddings': None  # We'll add this later when needed
         }
     
-    def get_model(self, purpose: str):
-        """Get the appropriate model for a specific purpose."""
-        if purpose not in self.models:
+    def get_model(self, purpose: str, temperature: float = 0):
+        """Get the appropriate model for a specific purpose with custom temperature."""
+        if purpose not in self.model_configs:
             raise ValueError(f"Unknown model purpose: {purpose}")
-        return self.models[purpose]
+            
+        config = self.model_configs[purpose]
+        if config is None:
+            return None
+            
+        return ChatOpenAI(model=config["model"], temperature=temperature)
 
-def initialize_model(purpose: str = 'summary'):
-    """Get a model for specific purpose. Defaults to summary model."""
+def initialize_model(purpose: str = 'summary', temperature: float = 0):
+    """Get a model for specific purpose with custom temperature. Defaults to summary model."""
     manager = ModelManager()
-    return manager.get_model(purpose)
+    return manager.get_model(purpose, temperature)
