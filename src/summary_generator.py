@@ -40,10 +40,8 @@ def generate_summary(news_items: List[Dict[str, Any]]) -> str:
     
     for item in news_items:
         # Use AI summary if available, otherwise fall back to description
-        if 'ai_summary' in item:
-            prompt += f"- {item['title']}:\n{item['ai_summary']}\n\n"
-        else:
-            prompt += f"- {item['title']}: {item['description']}\n"
+        content = item.get('ai_summary') or item.get('description', '')
+        prompt += f"- {item['title']}:\n{content}\n\n"
             
     response = model.invoke([HumanMessage(content=prompt)])
     return response.content
@@ -79,7 +77,7 @@ def deduplicate_news_items(news_items: List[Dict[str, Any]]) -> List[Dict[str, A
     logging.info(f"Deduplication complete. Reduced from {len(news_items)} to {len(unique_news)} items")
     return unique_news
 
-def evaluate_story_importance(news_items: List[Dict[str, Any]], category: str, percentage: float = 0.25, min_stories: int = 10, max_stories: int = 20) -> List[Dict[str, Any]]:
+def evaluate_story_importance(news_items: List[Dict[str, Any]], category: str, percentage: float = 0.25, min_stories: int = 5, max_stories: int = 15) -> List[Dict[str, Any]]:
     """
     Evaluate and select top stories based on their importance using AI.
     """
@@ -142,7 +140,6 @@ def evaluate_story_importance(news_items: List[Dict[str, Any]], category: str, p
             matching_items = [item for item in news_items if item['simple_id'] == simple_id]
             if matching_items:
                 top_stories.append(matching_items[0])
-                logging.info(f"Selected story: {matching_items[0]['title']}")
         
         # If we don't have enough stories, add more from the original list
         if len(top_stories) < target_stories:
