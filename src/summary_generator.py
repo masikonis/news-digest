@@ -79,7 +79,7 @@ def deduplicate_news_items(news_items: List[Dict[str, Any]]) -> List[Dict[str, A
     logging.info(f"Deduplication complete. Reduced from {len(news_items)} to {len(unique_news)} items")
     return unique_news
 
-def evaluate_story_importance(news_items: List[Dict[str, Any]], category: str, percentage: float = 0.25, min_stories: int = 5, max_stories: int = 15) -> List[Dict[str, Any]]:
+def evaluate_story_importance(news_items: List[Dict[str, Any]], category: str, percentage: float = 0.25, min_stories: int = 10, max_stories: int = 20) -> List[Dict[str, Any]]:
     """
     Evaluate and select top stories based on their importance using AI.
     """
