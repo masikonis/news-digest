@@ -71,7 +71,6 @@ def deduplicate_news_items(news_items: List[Dict[str, Any]]) -> List[Dict[str, A
         duplicates = [seen_title for seen_title in seen_titles if similar_titles(title, seen_title)]
         
         if duplicates:
-            logging.info(f"Found duplicate: '{title}' is similar to existing title: '{duplicates[0]}'")
             continue
             
         seen_titles.add(title)
@@ -79,6 +78,85 @@ def deduplicate_news_items(news_items: List[Dict[str, Any]]) -> List[Dict[str, A
     
     logging.info(f"Deduplication complete. Reduced from {len(news_items)} to {len(unique_news)} items")
     return unique_news
+
+def evaluate_story_importance(news_items: List[Dict[str, Any]], category: str, percentage: float = 0.25, min_stories: int = 5, max_stories: int = 15) -> List[Dict[str, Any]]:
+    """
+    Evaluate and select top stories based on their importance using AI.
+    """
+    
+    # First assign simple numeric IDs to each story
+    for idx, item in enumerate(news_items):
+        item['simple_id'] = str(idx + 1)
+    
+    target_stories = max(
+        min_stories,
+        min(
+            max_stories,
+            round(len(news_items) * percentage)
+        )
+    )
+    
+    logging.info(f"Category '{category}' has {len(news_items)} stories")
+    logging.info(f"Targeting {target_stories} stories ({percentage*100}% with min={min_stories}, max={max_stories})")
+    
+    if len(news_items) <= target_stories:
+        return news_items
+        
+    prompt = (
+        f"Tu esi patyręs naujienų redaktorius, kuris ruošia '{category}' kategorijos naujienų apžvalgą. "
+        "Įvertink šių naujienų svarbą ir poveikį, atsižvelgdamas į šiuos kriterijus:\n"
+        f"1. Tinkamumas '{category}' kategorijai ir temos aktualumas\n"
+        "2. Poveikis visuomenei ir valstybei\n"
+        "3. Naujienų aktualumas laiko atžvilgiu\n"
+        "4. Ilgalaikė įtaka\n"
+        "5. Visuomenės interesas\n\n"
+        f"LABAI SVARBU: Išrink {target_stories} SKIRTINGŲ ĮVYKIŲ naujienas. "
+        "Jei yra kelios naujienos apie tą patį įvykį, išrink TIK VIENĄ svarbiausią, "
+        "kad apžvalga būtų įvairi ir apimtų kuo daugiau skirtingų temų.\n\n"
+        "Pavyzdžiui:\n"
+        "- Jei yra 5 naujienos apie lėktuvo katastrofą, išrink TIK VIENĄ svarbiausią\n"
+        "- Jei yra 3 naujienos apie tą patį politinį sprendimą, išrink TIK VIENĄ išsamiausią\n\n"
+        f"Pateik {target_stories} skirtingų įvykių naujienų numerius, atskiriant kableliais (pvz: 1,5,8,12...).\n\n"
+        "Naujienos:\n"
+    )
+    
+    # Add each news item to the prompt using simple IDs
+    for item in news_items:
+        prompt += f"#{item['simple_id']}: {item['title']}\n"
+        if 'ai_summary' in item and isinstance(item.get('ai_summary'), str):
+            prompt += f"Santrauka: {item['ai_summary'][:200]}...\n"
+        prompt += "\n"
+    
+    logging.info("Sending request to AI for evaluation...")
+    response = model.invoke([HumanMessage(content=prompt)])
+    logging.info("Received AI response")
+    
+    try:
+        # Parse response to get ordered list of IDs
+        important_ids = [id.strip() for id in response.content.split(',')]
+        logging.info(f"AI returned {len(important_ids)} story IDs")
+        
+        # Get top stories while preserving AI-determined order
+        top_stories = []
+        for simple_id in important_ids:
+            matching_items = [item for item in news_items if item['simple_id'] == simple_id]
+            if matching_items:
+                top_stories.append(matching_items[0])
+                logging.info(f"Selected story: {matching_items[0]['title']}")
+        
+        # If we don't have enough stories, add more from the original list
+        if len(top_stories) < target_stories:
+            logging.info(f"Not enough stories selected ({len(top_stories)}), adding more to reach {target_stories}")
+            remaining_items = [item for item in news_items if item not in top_stories]
+            top_stories.extend(remaining_items[:target_stories - len(top_stories)])
+        
+        logging.info(f"Final selection: {len(top_stories)} stories")
+        return top_stories[:target_stories]
+    except Exception as e:
+        logging.error(f"Error processing AI response: {e}")
+        logging.error(f"AI response was: {response.content}")
+        logging.info("Falling back to date-based sorting")
+        return sorted(news_items, key=lambda x: x['pub_date'], reverse=True)[:target_stories]
 
 def generate_summaries_by_category(config_path: str) -> Dict[str, str]:
     config = load_config(config_path)
@@ -105,7 +183,8 @@ def generate_summaries_by_category(config_path: str) -> Dict[str, str]:
 
         for category, items in categorized_news.items():
             logging.info(f"Processing category: {category}")
-            summary = generate_summary(items)
+            top_stories = evaluate_story_importance(items, category)
+            summary = generate_summary(top_stories)
             summaries_by_category[category] = summary
 
     except FileNotFoundError as e:
