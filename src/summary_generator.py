@@ -8,6 +8,7 @@ from typing import List, Dict, Any
 from langchain.schema import HumanMessage
 from model_initializer import initialize_model
 from utils import setup_logging, load_config
+from difflib import SequenceMatcher
 
 model = initialize_model('summary')
 
@@ -47,6 +48,38 @@ def generate_summary(news_items: List[Dict[str, Any]]) -> str:
     response = model.invoke([HumanMessage(content=prompt)])
     return response.content
 
+def similar_titles(title1: str, title2: str, threshold: float = 0.8) -> bool:
+    """Check if two titles are similar using fuzzy string matching."""
+    return SequenceMatcher(None, title1.lower(), title2.lower()).ratio() > threshold
+
+def deduplicate_news_items(news_items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Remove duplicate news items, keeping the most detailed version."""
+    unique_news = []
+    seen_titles = set()
+    
+    logging.info(f"Starting deduplication of {len(news_items)} news items")
+    
+    # Sort by AI summary length to prioritize more detailed versions
+    sorted_news = sorted(
+        news_items,
+        key=lambda x: len(x.get('ai_summary', '')) if isinstance(x.get('ai_summary', ''), str) else 0,
+        reverse=True
+    )
+    
+    for item in sorted_news:
+        title = item['title']
+        duplicates = [seen_title for seen_title in seen_titles if similar_titles(title, seen_title)]
+        
+        if duplicates:
+            logging.info(f"Found duplicate: '{title}' is similar to existing title: '{duplicates[0]}'")
+            continue
+            
+        seen_titles.add(title)
+        unique_news.append(item)
+    
+    logging.info(f"Deduplication complete. Reduced from {len(news_items)} to {len(unique_news)} items")
+    return unique_news
+
 def generate_summaries_by_category(config_path: str) -> Dict[str, str]:
     config = load_config(config_path)
     config_dir = os.path.dirname(os.path.abspath(config_path))
@@ -67,6 +100,7 @@ def generate_summaries_by_category(config_path: str) -> Dict[str, str]:
         logging.info(f"Latest JSON file: {latest_file}")
 
         news_data = read_json_file(latest_file)
+        news_data = deduplicate_news_items(news_data)
         categorized_news = sort_by_category(news_data)
 
         for category, items in categorized_news.items():
