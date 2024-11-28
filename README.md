@@ -2,11 +2,11 @@
 
 [![codecov](https://codecov.io/gh/masikonis/news-digest/branch/main/graph/badge.svg)](https://codecov.io/gh/masikonis/news-digest)
 
-This script scrapes news articles from RSS feeds, leverages AI to analyze and highlight the most significant stories, and delivers a concise summary via email.
+This script collects news articles from RSS feeds, uses AI to analyze and highlight the key stories, and sends a short summary via email.
 
 ## Rationale
 
-This application was developed to combat news addiction. After deciding to stop checking the news regularly, I needed a way to stay informed without spending excessive time. Instead of spending two hours a day, I now receive a summary every Sunday evening that I can read in ten minutes, resulting in significant time savings.
+I developed this application to help reduce my news addiction. After deciding to stop checking the news all the time, I needed a way to stay informed without wasting too much time. Instead of spending two hours a day on news, I now get a summary every Sunday evening that I can read in ten minutes. This change has saved me a lot of time.
 
 ## Setup & Usage
 
