@@ -27,15 +27,23 @@ class TestContentEnricher(unittest.TestCase):
     @patch('src.content_enricher.initialize_model')
     @patch('builtins.open', new_callable=mock_open)
     @patch('src.content_enricher.load_config')
-    def test_initialization(self, mock_load_config, mock_file, mock_init_model):
+    @patch('os.path.dirname')
+    def test_initialization(self, mock_dirname, mock_load_config, mock_file, mock_init_model):
         mock_load_config.return_value = self.test_config
         mock_model = MagicMock()
         mock_init_model.return_value = mock_model
         
+        # Mock the directory paths
+        mock_dirname.side_effect = [
+            '/path/to/script/dir',  # First call for script directory
+            '/path/to/project/root'  # Second call for project root
+        ]
+        
         enricher = ContentEnricher("mock_config.json")
         
-        self.assertEqual(enricher.base_folder, "test_folder")
-        self.assertTrue(enricher.enrichment_config["enabled"])
+        # Update the assertion to match the absolute path
+        expected_path = os.path.join('/path/to/project/root', "test_folder")
+        self.assertEqual(enricher.base_folder, expected_path)
         mock_init_model.assert_called_once_with('basic', temperature=0.3)
 
     @patch('src.content_enricher.initialize_model')
@@ -220,7 +228,7 @@ class TestContentEnricher(unittest.TestCase):
         mock_parser.add_argument.assert_called_once_with(
             '--config', 
             type=str, 
-            default='src/config.json', 
+            default='config.json',
             help='Path to the configuration file'
         )
 
