@@ -2,7 +2,7 @@
 
 [![codecov](https://codecov.io/gh/masikonis/news-digest/branch/main/graph/badge.svg)](https://codecov.io/gh/masikonis/news-digest)
 
-This collects and filters articles from RSS feeds, uses AI to summarize content, removes duplicates, ranks by importance, and groups related articles. The result is a well-organized email digest of significant news in an easy-to-read format.
+This application collects and filters articles from RSS feeds, uses AI to summarize content, removes duplicates, ranks by importance, and groups related articles. The result is a well-organized email digest of significant news in an easy-to-read format.
 
 ## Rationale
 
