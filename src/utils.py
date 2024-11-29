@@ -17,6 +17,10 @@ def setup_logging(log_file: str, force: bool = False):
                 logging.StreamHandler()
             ]
         )
+        
+        # Suppress third-party logging
+        logging.getLogger("httpx").setLevel(logging.WARNING)
+        logging.getLogger("openai").setLevel(logging.WARNING)
 
 def load_config(config_path: str) -> dict:
     import json

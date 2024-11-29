@@ -9,8 +9,10 @@ from langchain.schema import HumanMessage
 from model_initializer import initialize_model
 from utils import setup_logging, load_config
 from difflib import SequenceMatcher
+import numpy as np
 
 model = initialize_model('advanced', temperature=0.7)
+embeddings_model = initialize_model('embeddings')
 
 def get_latest_json_file(directory: str) -> str:
     json_files = glob.glob(os.path.join(directory, "*.json"))
@@ -33,9 +35,14 @@ def sort_by_category(news_items: List[Dict[str, Any]]) -> Dict[str, List[Dict[st
 
 def generate_summary(news_items: List[Dict[str, Any]]) -> str:
     prompt = (
-        "Tu esi dirbtinio intelekto naujienų apžvalgininkas. Apibendrink šias naujienas į vieną glaustą paragrafą, "
-        "apie 120 žodžių, pabrėždamas svarbiausius momentus ir labiausiai įtakojančius įvykius. Šis apibendrinimas skirtas žmogui, kuris nesekė naujienų ir nori sužinoti "
-        "svarbiausius įvykius per savaitę. Pasirink ir pabrėžk tik pačius svarbiausius ir įtakingiausius įvykius, paversdamas naujienas rišliu ir nuosekliu pasakojimu:\n\n"
+        "Tu esi patyręs žurnalistas ir naujienų apžvalgininkas. Tavo užduotis:\n\n"
+        "1. Sukurti vieną glaustą paragrafą (apie 150 žodžių)\n"
+        "2. Naudoti formalų ir aiškų stilių\n"
+        "3. Sujungti naujienas į rišlų ir nuoseklų pasakojimą\n"
+        "4. Pabrėžti svarbiausius ir didžiausią poveikį turinčius įvykius\n"
+        "5. Vengti perteklinių detalių\n\n"
+        "Ši apžvalga skirta skaitytojui, kuris nesekė naujienų ir nori sužinoti esminius "
+        "savaitės įvykius. Apibendrink šias naujienas:\n\n"
     )
     
     for item in news_items:
@@ -48,26 +55,53 @@ def generate_summary(news_items: List[Dict[str, Any]]) -> str:
 def similar_titles(title1: str, title2: str, threshold: float = 0.8) -> bool:
     return SequenceMatcher(None, title1.lower(), title2.lower()).ratio() > threshold
 
+def cosine_similarity(v1: List[float], v2: List[float]) -> float:
+    dot_product = sum(x * y for x, y in zip(v1, v2))
+    norm1 = sum(x * x for x in v1) ** 0.5
+    norm2 = sum(x * x for x in v2) ** 0.5
+    return dot_product / (norm1 * norm2) if norm1 > 0 and norm2 > 0 else 0
+
 def deduplicate_news_items(news_items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    unique_news = []
-    seen_titles = set()
-    
     logging.info(f"Starting deduplication of {len(news_items)} news items")
     
+    # Sort by AI summary length (prioritize more detailed items)
     sorted_news = sorted(
         news_items,
         key=lambda x: len(x.get('ai_summary', '')) if isinstance(x.get('ai_summary', ''), str) else 0,
         reverse=True
     )
     
-    for item in sorted_news:
-        title = item['title']
-        duplicates = [seen_title for seen_title in seen_titles if similar_titles(title, seen_title)]
-        
-        if duplicates:
+    # Get embeddings for all titles
+    titles = [item['title'] for item in sorted_news]
+    embeddings = [
+        embeddings_model.embed_query(title) 
+        for title in titles
+    ]
+    
+    unique_news = []
+    seen_indices = set()
+    
+    for i, item in enumerate(sorted_news):
+        if i in seen_indices:
             continue
             
-        seen_titles.add(title)
+        # Check both string and semantic similarity
+        is_duplicate = False
+        for j in range(i + 1, len(sorted_news)):
+            if j in seen_indices:
+                continue
+                
+            # Check string similarity first (faster)
+            if similar_titles(titles[i], titles[j]):
+                seen_indices.add(j)
+                continue
+                
+            # Check semantic similarity
+            similarity = cosine_similarity(embeddings[i], embeddings[j])
+            if similarity > 0.70:
+                seen_indices.add(j)
+                logging.debug(f"Semantic duplicate found: '{titles[i]}' and '{titles[j]}' (similarity: {similarity:.2f})")
+        
         unique_news.append(item)
     
     logging.info(f"Deduplication complete. Reduced from {len(news_items)} to {len(unique_news)} items")
@@ -90,19 +124,19 @@ def evaluate_story_importance(news_items: List[Dict[str, Any]], category: str, p
         
     prompt = (
         f"Tu esi patyręs naujienų redaktorius, kuris ruošia '{category}' kategorijos naujienų apžvalgą. "
-        "Įvertink šių naujienų svarbą ir poveikį, atsižvelgdamas į šiuos kriterijus:\n"
-        f"1. Tinkamumas '{category}' kategorijai ir temos aktualumas\n"
-        "2. Poveikis visuomenei ir valstybei\n"
-        "3. Naujienų aktualumas laiko atžvilgiu\n"
-        "4. Ilgalaikė įtaka\n"
-        "5. Visuomenės interesas\n\n"
-        f"LABAI SVARBU: Išrink {target_stories} SKIRTINGŲ ĮVYKIŲ naujienas. "
-        "Jei yra kelios naujienos apie tą patį įvykį, išrink TIK VIENĄ svarbiausią, "
-        "kad apžvalga būtų įvairi ir apimtų kuo daugiau skirtingų temų.\n\n"
-        "Pavyzdžiui:\n"
-        "- Jei yra 5 naujienos apie lėktuvo katastrofą, išrink TIK VIENĄ svarbiausią\n"
-        "- Jei yra 3 naujienos apie tą patį politinį sprendimą, išrink TIK VIENĄ išsamiausią\n\n"
-        f"Pateik {target_stories} skirtingų įvykių naujienų numerius, atskiriant kableliais (pvz: 1,5,8,12...).\n\n"
+        "Įvertink kiekvienos naujienos svarbą nuo 1 iki 10 (10 - ypač svarbi, 1 - mažai svarbi), "
+        "atsižvelgdamas į šiuos kriterijus:\n\n"
+        f"1. Tinkamumas '{category}' kategorijai ir temos aktualumas (2 taškai)\n"
+        "2. Poveikis visuomenei ir valstybei (3 taškai)\n"
+        "3. Naujienų aktualumas laiko atžvilgiu (2 taškai)\n"
+        "4. Ilgalaikė įtaka (2 taškai)\n"
+        "5. Visuomenės interesas (1 taškas)\n\n"
+        "LABAI SVARBU: Jei yra kelios naujienos apie tą patį įvykį, įvertink jas skirtingai, "
+        "kad išvengtume pasikartojančių temų. Pavyzdžiui:\n"
+        "- Jei yra 3 naujienos apie tą patį įvykį, pagrindinei naujienai duok aukštesnį įvertinimą (8-10), "
+        "o kitoms žemesnį (1-3)\n\n"
+        "Pateik įvertinimus tokiu formatu:\n"
+        "1:8\n2:5\n3:9\n...\n\n"
         "Naujienos:\n"
     )
     
@@ -112,21 +146,39 @@ def evaluate_story_importance(news_items: List[Dict[str, Any]], category: str, p
             prompt += f"Santrauka: {item['ai_summary'][:200]}...\n"
         prompt += "\n"
     
-    response = model.invoke([HumanMessage(content=prompt)])
-    
     try:
-        important_ids = [id.strip() for id in response.content.split(',')]
-        top_stories = []
-        for simple_id in important_ids:
-            matching_items = [item for item in news_items if item['simple_id'] == simple_id]
-            if matching_items:
-                top_stories.append(matching_items[0])
+        response = model.invoke([HumanMessage(content=prompt)])
         
-        if len(top_stories) < target_stories:
-            remaining_items = [item for item in news_items if item not in top_stories]
-            top_stories.extend(remaining_items[:target_stories - len(top_stories)])
+        # Parse importance scores
+        importance_scores = {}
+        for line in response.content.strip().split('\n'):
+            if ':' in line:
+                try:
+                    idx, score = line.split(':')
+                    score = int(score.strip())
+                    if 1 <= score <= 10:  # Validate score range
+                        importance_scores[idx.strip()] = score
+                except (ValueError, IndexError):
+                    continue
         
-        return top_stories[:target_stories]
+        if not importance_scores:
+            raise ValueError("No valid importance scores found in response")
+        
+        # Sort stories based on scores and handle ties using publication date
+        sorted_items = sorted(
+            news_items,
+            key=lambda x: (
+                importance_scores.get(x['simple_id'], 0),
+                x.get('pub_date', '1970-01-01')  # Fallback date for sorting
+            ),
+            reverse=True
+        )
+        
+        for item in sorted_items[:target_stories]:
+            score = importance_scores.get(item['simple_id'], 0)
+        
+        return sorted_items[:target_stories]
+        
     except Exception as e:
         logging.error(f"Error processing AI response: {e}")
         logging.error(f"AI response was: {response.content}")

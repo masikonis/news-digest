@@ -2,6 +2,7 @@
 import os
 from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI
+from langchain_openai import OpenAIEmbeddings
 
 class ModelManager:
     def __init__(self):
@@ -9,11 +10,14 @@ class ModelManager:
         openai_api_key = os.getenv("OPENAI_API_KEY")
         os.environ["OPENAI_API_KEY"] = openai_api_key
         
-        # Initialize model configurations (not instances)
+        # Initialize model configurations
         self.model_configs = {
             'basic': {"model": "gpt-4o-mini"},
             'advanced': {"model": "gpt-4o"},
-            'embeddings': None  # We'll add this later when needed
+            'embeddings': {
+                "model": "text-embedding-3-small",
+                "dimensions": 1536
+            }
         }
     
     def get_model(self, purpose: str, temperature: float = 0):
@@ -23,6 +27,12 @@ class ModelManager:
         config = self.model_configs[purpose]
         if config is None:
             return None
+            
+        if purpose == 'embeddings':
+            return OpenAIEmbeddings(
+                model=config["model"],
+                dimensions=config["dimensions"]
+            )
             
         return ChatOpenAI(model=config["model"], temperature=temperature)
 
