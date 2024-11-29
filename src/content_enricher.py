@@ -30,9 +30,15 @@ class ContentEnricher:
         Args:
             config_path (str): Path to the configuration JSON file
         """
+        # Get the absolute path of the script's directory
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        # Convert config_path to absolute path if it's relative
+        config_path = os.path.join(script_dir, config_path)
+        
         self.config = load_config(config_path)
         self.enrichment_config = self.config.get("content_enrichment", {})
-        self.base_folder = self.config["base_folder"]
+        # Convert base_folder to absolute path
+        self.base_folder = os.path.join(script_dir, '..', self.config["base_folder"])
         self.model = initialize_model('basic', temperature=0.3)
         
     def get_full_content(self, url: str) -> Optional[str]:
