@@ -8,6 +8,14 @@ This script collects news articles from RSS feeds, uses AI to analyze and highli
 
 I developed this application to help reduce my news addiction. After deciding to stop checking the news all the time, I needed a way to stay informed without wasting too much time. Instead of spending one hour a day on news, I now get a summary every Sunday evening that I can read in ten minutes. This change has saved me a lot of time.
 
+## How It Works
+
+1. **Fetch News**: Collects articles from RSS feeds, filtering by publication date.
+2. **Enrich Content**: Uses AI to generate concise AI-based summaries of the articles.
+3. **Filter & Deduplicate**: Removes duplicates and ranks articles by importance.
+4. **Create Summaries**: Groups articles by category and creates clear, short summaries.
+5. **Send Email**: Compiles the summaries into an email and sends it to the recipients.
+
 ## Setup & Usage
 
 ### Regular Usage
