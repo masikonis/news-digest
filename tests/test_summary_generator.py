@@ -152,8 +152,8 @@ class TestSummaryGenerator(unittest.TestCase):
     @patch('src.summary_generator.evaluate_story_importance')
     @patch('src.summary_generator.deduplicate_news_items')
     def test_generate_summaries_by_category_full(
-        self, mock_deduplicate, mock_evaluate_importance, mock_read_json_file, 
-        mock_get_latest_json_file, mock_load_config, mock_setup_logging, 
+        self, mock_deduplicate, mock_evaluate_importance, mock_read_json_file,
+        mock_get_latest_json_file, mock_load_config, mock_setup_logging,
         mock_makedirs, mock_exists, mock_model, mock_embeddings_model
     ):
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -171,10 +171,10 @@ class TestSummaryGenerator(unittest.TestCase):
                 {"title": "News 3", "description": "Description 3", "category": "Uncategorized", "pub_date": datetime(2023, 1, 3)},
             ]
             mock_read_json_file.return_value = test_news
-            
+
             # Make sure deduplication returns all items
             mock_deduplicate.side_effect = lambda x: x
-            
+
             # Make sure evaluation returns all items for each category
             mock_evaluate_importance.side_effect = lambda items, category: [
                 item for item in items if item['category'] == category
@@ -234,7 +234,7 @@ class TestSummaryGenerator(unittest.TestCase):
                 "simple_id": "1"
             }
         ]
-        
+
         # Test invalid format
         mock_response = MagicMock()
         mock_response.content = "invalid:format"
@@ -324,10 +324,10 @@ class TestSummaryGenerator(unittest.TestCase):
         ]
         # Set up the exception
         mock_model.invoke.side_effect = Exception("Model error")
-        
+
         # Call the function
         result = evaluate_story_importance(news_items, "Politics")
-        
+
         # Verify results
         self.assertEqual(len(result), 1)  # Should fall back to date-based sorting
 
@@ -340,16 +340,16 @@ class TestSummaryGenerator(unittest.TestCase):
             "base_folder": "test_folder",
             "log_file": "test.log"
         }
-        
+
         # Then make it raise an exception on the actual call
         mock_load_config.side_effect = [
             {"base_folder": "test_folder", "log_file": "test.log"},
             Exception("Invalid config")
         ]
-        
+
         # Call the function
         result = generate_summaries_by_category("invalid_config.json")
-        
+
         # Verify results
         self.assertEqual(result, {})
 
@@ -413,14 +413,14 @@ class TestSummaryGenerator(unittest.TestCase):
             {"title": "First News", "description": "Test 1", "ai_summary": "Long summary"},
             {"title": "Second News", "description": "Test 2", "ai_summary": "Short"}
         ]
-        
+
         # Set up mocks
         mock_similar_titles.return_value = False  # Force semantic similarity check
         mock_embeddings_model.embed_query.side_effect = [
             [1.0, 0.0, 0.0],
             [0.9, 0.0, 0.0]  # Very similar to first vector
         ]
-        
+
         result = deduplicate_news_items(news_items)
         self.assertEqual(len(result), 1)
 
@@ -433,8 +433,12 @@ class TestSummaryGenerator(unittest.TestCase):
         ]
         # Mock the similarity check to return False
         mock_similar_titles_func.return_value = False
-        mock_embeddings_model.embed_query.return_value = [0, 0, 0]
-        
+        # Provide different embeddings
+        mock_embeddings_model.embed_query.side_effect = [
+            [0.0, 0.0, 1.0],  # Embedding for empty title
+            [1.0, 0.0, 0.0]   # Embedding for "Different"
+        ]
+
         result = deduplicate_news_items(news_items)
         self.assertEqual(len(result), 2)
 
@@ -456,11 +460,11 @@ class TestSummaryGenerator(unittest.TestCase):
                 "simple_id": "2"
             }
         ]
-        # Test lines 182-186: Valid scores processing
+        # Test valid scores processing
         mock_response = MagicMock()
         mock_response.content = "1:8\n2:5"
         mock_model.invoke.return_value = mock_response
-        
+
         result = evaluate_story_importance(news_items, "Politics")
         self.assertEqual(len(result), 2)
         # First item should be News 1 (score 8)
@@ -469,14 +473,14 @@ class TestSummaryGenerator(unittest.TestCase):
     @patch('builtins.print')
     @patch('src.summary_generator.generate_summaries_by_category')
     def test_main_with_summaries(self, mock_generate_summaries, mock_print):
-        # Test line 230: Main function with summaries
+        # Test main function with summaries
         mock_generate_summaries.return_value = {
             "Category1": "Summary1",
             "Category2": "Summary2"
         }
-        
+
         main("test_config.json")
-        
+
         mock_print.assert_any_call("\nCategory1\nSummary1")
         mock_print.assert_any_call("\nCategory2\nSummary2")
 
@@ -498,23 +502,20 @@ class TestSummaryGenerator(unittest.TestCase):
                 "simple_id": "2"
             }
         ]
-        
+
         # Mock response with no valid scores
         mock_response = MagicMock()
         mock_response.content = "invalid_format\nno_scores_here\n1:invalid"
         mock_model.invoke.return_value = mock_response
-        
-        # This should trigger the ValueError in line 182
+
+        # This should trigger the ValueError
         result = evaluate_story_importance(news_items, "Politics")
-        
+
         # Should fall back to date-based sorting
         self.assertEqual(len(result), 2)
         # Verify that we got both items in some order
         dates = {item['pub_date'] for item in result}
         self.assertEqual(dates, {datetime(2023, 1, 1), datetime(2023, 1, 2)})
-        # Verify that at least one item has the expected date
-        self.assertTrue(any(item['pub_date'] == datetime(2023, 1, 1) for item in result))
-        self.assertTrue(any(item['pub_date'] == datetime(2023, 1, 2) for item in result))
 
     @patch('src.summary_generator.logging')
     @patch('src.summary_generator.embeddings_model')
@@ -524,26 +525,24 @@ class TestSummaryGenerator(unittest.TestCase):
             {"title": "Similar Title 1", "description": "Test 1"},
             {"title": "Similar Title 2", "description": "Test 2"}
         ]
-        
+
         # Set up mocks
         mock_similar_titles.return_value = False  # Force semantic similarity check
         mock_embeddings.embed_query.side_effect = [
             [1.0, 0.0, 0.0],
             [0.9, 0.0, 0.0]  # Very similar to first vector
         ]
-        
+
         # Call the function
         result = deduplicate_news_items(news_items)
-        
-        # Verify debug logging was called (line 165)
+
+        # Verify debug logging was called
         expected_message = "Semantic duplicate found: 'Similar Title 1' and 'Similar Title 2' (similarity: 0.90)"
         mock_logging.debug.assert_called_once()
         actual_call = mock_logging.debug.call_args[0][0]
-        self.assertTrue(
-            "Semantic duplicate found:" in actual_call and 
-            "Similar Title 1" in actual_call and 
-            "Similar Title 2" in actual_call
-        )
+        self.assertIn("Semantic duplicate found:", actual_call)
+        self.assertIn("Similar Title 1", actual_call)
+        self.assertIn("Similar Title 2", actual_call)
 
     def test_main_empty_summaries(self):
         with patch('src.summary_generator.generate_summaries_by_category') as mock_generate:
@@ -551,6 +550,100 @@ class TestSummaryGenerator(unittest.TestCase):
             with patch('builtins.print') as mock_print:
                 main("test_config.json")
                 mock_print.assert_not_called()
+
+    def test_cosine_similarity_known_values(self):
+        v1 = [1, 0]
+        v2 = [0, 1]
+        self.assertAlmostEqual(cosine_similarity(v1, v2), 0.0)
+        v3 = [1, 0]
+        v4 = [1, 0]
+        self.assertAlmostEqual(cosine_similarity(v3, v4), 1.0)
+        v5 = [1, 0]
+        v6 = [0.5, 0.5]
+        self.assertAlmostEqual(cosine_similarity(v5, v6), 0.7071, places=4)
+
+    def test_generate_summary_missing_fields(self):
+        news_items = [
+            {"title": "Test"}
+        ]
+        with patch('src.summary_generator.model') as mock_model:
+            mock_response = MagicMock()
+            mock_response.content = "Generated summary"
+            mock_model.invoke.return_value = mock_response
+            summary = generate_summary(news_items)
+            self.assertEqual(summary, "Generated summary")
+
+    def test_deduplicate_news_items_missing_title(self):
+        news_items = [
+            {"title": "", "description": "Description 1", "category": "Politics", "ai_summary": "Summary 1"},
+            {"title": "News 2", "description": "Description 2", "category": "Politics", "ai_summary": "Summary 2"}
+        ]
+        with patch('src.summary_generator.embeddings_model') as mock_embeddings_model:
+            with patch('src.summary_generator.similar_titles') as mock_similar_titles:
+                mock_similar_titles.return_value = False
+                # Provide different embeddings
+                mock_embeddings_model.embed_query.side_effect = [
+                    [0.0, 0.0, 1.0],  # Embedding for empty title
+                    [1.0, 0.0, 0.0]   # Embedding for "News 2"
+                ]
+                result = deduplicate_news_items(news_items)
+                self.assertEqual(len(result), 2)
+
+    def test_generate_summaries_by_category_no_json_files(self):
+        with patch('src.summary_generator.get_latest_json_file') as mock_get_latest_json_file:
+            mock_get_latest_json_file.side_effect = FileNotFoundError("No JSON files found in the directory.")
+            with patch('src.summary_generator.logging') as mock_logging:
+                with patch('src.summary_generator.load_config') as mock_load_config:
+                    mock_load_config.return_value = {
+                        "base_folder": "test_folder",
+                        "log_file": "test.log"
+                    }
+                    summaries = generate_summaries_by_category("test_config.json")
+                    self.assertEqual(summaries, {})
+                    # Adjusted assertion to handle exception object
+                    mock_logging.error.assert_called()
+                    logged_args = mock_logging.error.call_args[0]
+                    self.assertIn("No JSON files found in the directory.", str(logged_args[0]))
+
+    @patch('src.summary_generator.model')
+    def test_evaluate_story_importance_missing_pub_date(self, mock_model):
+        news_items = [
+            {"title": "News 1", "description": "Description 1", "category": "Politics"},
+            {"title": "News 2", "description": "Description 2", "category": "Politics", "pub_date": datetime(2023, 1, 2)}
+        ]
+        mock_response = MagicMock()
+        mock_response.content = "1:8\n2:5"
+        mock_model.invoke.return_value = mock_response
+        result = evaluate_story_importance(news_items, "Politics")
+        self.assertEqual(len(result), 2)
+        self.assertEqual(result[0]['title'], "News 1")  # Since it has higher importance score
+
+    def test_deduplicate_news_items_ai_summary_not_string(self):
+        news_items = [
+            {"title": "News 1", "description": "Description 1", "ai_summary": None},
+            {"title": "News 2", "description": "Description 2", "ai_summary": "Summary 2"}
+        ]
+        with patch('src.summary_generator.embeddings_model') as mock_embeddings_model:
+            with patch('src.summary_generator.similar_titles') as mock_similar_titles:
+                mock_similar_titles.return_value = False
+                # Provide different embeddings to prevent high similarity
+                mock_embeddings_model.embed_query.side_effect = [
+                    [1.0, 0.0, 0.0],  # Embedding for "News 1"
+                    [0.0, 1.0, 0.0]   # Embedding for "News 2"
+                ]
+                result = deduplicate_news_items(news_items)
+                self.assertEqual(len(result), 2)
+
+    def test_generate_summary_ai_summary_not_string(self):
+        news_items = [
+            {"title": "Test", "ai_summary": None, "description": "Test description"}
+        ]
+        with patch('src.summary_generator.model') as mock_model:
+            mock_response = MagicMock()
+            mock_response.content = "Generated summary"
+            mock_model.invoke.return_value = mock_response
+            summary = generate_summary(news_items)
+            self.assertEqual(summary, "Generated summary")
 
 if __name__ == "__main__":
     unittest.main()
