@@ -6,7 +6,7 @@ This script collects news articles from RSS feeds, uses AI to analyze and highli
 
 ## Rationale
 
-I developed this application to help reduce my news addiction. After deciding to stop checking the news all the time, I needed a way to stay informed without wasting too much time. Instead of spending two hours a day on news, I now get a summary every Sunday evening that I can read in ten minutes. This change has saved me a lot of time.
+I developed this application to help reduce my news addiction. After deciding to stop checking the news all the time, I needed a way to stay informed without wasting too much time. Instead of spending one hour a day on news, I now get a summary every Sunday evening that I can read in ten minutes. This change has saved me a lot of time.
 
 ## Setup & Usage
 
