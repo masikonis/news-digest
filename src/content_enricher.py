@@ -32,13 +32,20 @@ class ContentEnricher:
         """
         # Get the absolute path of the script's directory
         script_dir = os.path.dirname(os.path.abspath(__file__))
-        # Convert config_path to absolute path if it's relative
-        config_path = os.path.join(script_dir, config_path)
+        project_root = os.path.dirname(script_dir)  # Go up one level to project root
+        
+        # If config_path starts with 'src/', remove it since we're already handling paths relative to project root
+        if config_path.startswith('src/'):
+            config_path = config_path[4:]  # Remove 'src/' prefix
+        
+        # If config_path is not absolute, make it relative to script_dir
+        if not os.path.isabs(config_path):
+            config_path = os.path.join(script_dir, config_path)
         
         self.config = load_config(config_path)
         self.enrichment_config = self.config.get("content_enrichment", {})
         # Convert base_folder to absolute path
-        self.base_folder = os.path.join(script_dir, '..', self.config["base_folder"])
+        self.base_folder = os.path.join(project_root, self.config["base_folder"])
         self.model = initialize_model('basic', temperature=0.3)
         
     def get_full_content(self, url: str) -> Optional[str]:
@@ -127,7 +134,6 @@ class ContentEnricher:
         with open(weekly_file, 'r') as f:
             news_items = json.load(f)
 
-        # Find articles that need processing (exclude previously failed ones)
         to_process = [item for item in news_items 
                      if 'ai_summary' not in item 
                      and 'ai_summary_failed' not in item]
@@ -136,10 +142,11 @@ class ContentEnricher:
             logging.info("No articles to process")
             return
 
+        logging.info(f"Starting to process {len(to_process)} articles")
         processed = 0
+        failed = 0
+        
         for item in to_process:
-            logging.info(f"Processing: {item['title']}")
-            
             # Get full content and generate summary
             full_content = self.get_full_content(item['id'])
             if full_content:
@@ -152,23 +159,26 @@ class ContentEnricher:
                         break
                 
                 processed += 1
-                logging.info(f"✓ Processed {processed}/{len(to_process)}")
             else:
                 # Mark the article as failed
                 for i, news_item in enumerate(news_items):
                     if news_item['id'] == item['id']:
                         news_items[i]['ai_summary_failed'] = True
                         break
-                logging.error(f"Failed to fetch content: {item['title']}")
+                failed += 1
             
             # Save after each article (success or failure)
             with open(weekly_file, 'w', encoding='utf-8') as f:
                 json.dump(news_items, f, ensure_ascii=False, indent=4)
             
+            # Log progress every 10 articles
+            if processed > 0 and processed % 10 == 0:
+                logging.info(f"Progress: {processed}/{len(to_process)} articles processed")
+                
             # Rate limiting
             time.sleep(self.enrichment_config.get("scraping_delay", 2))
 
-        logging.info(f"Enrichment complete. Successfully processed {processed} articles")
+        logging.info(f"Enrichment complete. Successfully processed {processed} articles, {failed} failed")
 
 def main(config_path: str):
     """Main entry point for the content enrichment process.
@@ -207,7 +217,7 @@ def parse_arguments():
     """
     import argparse
     parser = argparse.ArgumentParser(description="Content Enricher for Weekly News")
-    parser.add_argument('--config', type=str, default='src/config.json', help='Path to the configuration file')
+    parser.add_argument('--config', type=str, default='config.json', help='Path to the configuration file')
     return parser.parse_args()
 
 def run():
