@@ -27,38 +27,6 @@ I developed this application to help reduce my news addiction. After deciding to
     coverage report -m
     ```
 
-## Configuration
-
-Edit the `src/config.json` file with the following structure if necessary:
-```json
-{
-    "categories": {
-        "Ukraina": "https://www.lrt.lt/tema/rusijos-karas-pries-ukraina?rss",
-        "Verslas": "https://www.lrt.lt/naujienos/verslas?rss",
-        "Pasaulis": "https://www.lrt.lt/naujienos/pasaulyje?rss",
-        "Lietuva": "https://www.lrt.lt/naujienos/lietuvoje?rss",
-        "Marijampolė": "https://www.suvalkietis.lt/feed/"
-    },
-    "base_folder": "weekly_news",
-    "retry_count": 3,
-    "retry_delay": 2,
-    "log_file": "output.log",
-    "content_enrichment": {
-        "enabled": true,
-        "scraping_delay": 2,
-        "max_retries": 3,
-        "sources": {
-            "www.lrt.lt": {
-                "selector": "article.article-block"
-            },
-            "www.suvalkietis.lt": {
-                "selector": "div.single-post-content"
-            }
-        }
-    }
-}
-```
-
 ## Automating with Launchd
 
 Automate the RSS scraper to run every hour on a Mac using a plist file with launchd. The `.plist` files required for this Python application are stored in the `~/Library/LaunchAgents/` directory.
