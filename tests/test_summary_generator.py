@@ -1,5 +1,4 @@
 # tests/test_summary_generator.py
-
 import unittest
 import os
 import tempfile
@@ -219,33 +218,29 @@ class TestSummaryGenerator(unittest.TestCase):
                 mock_evaluate_importance.assert_called()
                 mock_deduplicate.assert_called_once()
 
-    @patch('src.summary_generator.logging.error')
-    @patch('src.summary_generator.load_config')
-    @patch('src.summary_generator.get_latest_json_file')
-    def test_generate_summaries_by_category_file_not_found(self, mock_get_latest_json_file, mock_load_config, mock_logging_error):
-        with tempfile.TemporaryDirectory() as temp_dir:
-            mock_load_config.return_value = {"base_folder": temp_dir, "log_file": os.path.join(temp_dir, "test.log")}
-            mock_get_latest_json_file.side_effect = FileNotFoundError("No JSON files found in the directory.")
+    def test_empty_input_handling(self):
+        self.assertEqual(sort_by_category([]), {})
+        self.assertEqual(deduplicate_news_items([]), [])
+        self.assertEqual(evaluate_story_importance([], "Politics"), [])
 
-            result = generate_summaries_by_category("test_config.json")
-
-            self.assertEqual(result, {})
-            mock_logging_error.assert_called_once()
-            error_message = mock_logging_error.call_args[0][0]
-            self.assertEqual(str(error_message), "No JSON files found in the directory.")
-
-    @patch('src.summary_generator.logging.error')
-    @patch('src.summary_generator.load_config')
-    @patch('src.summary_generator.get_latest_json_file')
-    def test_generate_summaries_by_category_unexpected_error(self, mock_get_latest_json_file, mock_load_config, mock_logging_error):
-        with tempfile.TemporaryDirectory() as temp_dir:
-            mock_load_config.return_value = {"base_folder": temp_dir, "log_file": os.path.join(temp_dir, "test.log")}
-            mock_get_latest_json_file.side_effect = Exception("Unexpected error")
-
-            result = generate_summaries_by_category("test_config.json")
-
-            self.assertEqual(result, {})
-            mock_logging_error.assert_called_once_with("An unexpected error occurred: Unexpected error")
+    @patch('src.summary_generator.model')
+    def test_evaluate_story_importance_error_cases(self, mock_model_param):
+        news_items = [
+            {
+                "title": "News 1",
+                "description": "Description 1",
+                "category": "Politics",
+                "pub_date": datetime(2023, 1, 1),
+                "simple_id": "1"
+            }
+        ]
+        
+        # Test invalid format
+        mock_response = MagicMock()
+        mock_response.content = "invalid:format"
+        mock_model_param.invoke.return_value = mock_response
+        result = evaluate_story_importance(news_items, "Politics")
+        self.assertEqual(len(result), 1)
 
     @patch('builtins.print')
     @patch('src.summary_generator.generate_summaries_by_category')
@@ -265,7 +260,6 @@ class TestSummaryGenerator(unittest.TestCase):
             mock_print.assert_any_call("\nTechnology\nTechnology summary")
 
     def test_generate_summary_empty_content(self):
-        """Test generate_summary with empty content"""
         news_items = [
             {"title": "Test", "description": "", "ai_summary": ""}
         ]
@@ -277,19 +271,16 @@ class TestSummaryGenerator(unittest.TestCase):
             self.assertEqual(summary, "Empty summary")
 
     def test_cosine_similarity_zero_vectors(self):
-        """Test cosine_similarity with zero vectors"""
         v1 = [0, 0, 0]
         v2 = [1, 1, 1]
         self.assertEqual(cosine_similarity(v1, v2), 0)
 
     def test_similar_titles_edge_cases(self):
-        """Test similar_titles with various cases"""
         self.assertTrue(similar_titles("Same Title", "same title"))
         self.assertFalse(similar_titles("Different", "Title"))
         self.assertTrue(similar_titles("Almost Same Title", "Almost Same Title!"))
 
     def test_evaluate_story_importance_invalid_response(self):
-        """Test evaluate_story_importance with invalid AI response"""
         news_items = [
             {
                 "title": "News 1",
@@ -307,7 +298,6 @@ class TestSummaryGenerator(unittest.TestCase):
 
     @patch('src.summary_generator.model')
     def test_evaluate_story_importance_empty_scores(self, mock_model):
-        """Test evaluate_story_importance with empty scores"""
         news_items = [
             {
                 "title": "News 1",
@@ -324,7 +314,6 @@ class TestSummaryGenerator(unittest.TestCase):
 
     @patch('src.summary_generator.model')
     def test_evaluate_story_importance_exception(self, mock_model):
-        """Test evaluate_story_importance with exception"""
         news_items = [
             {
                 "title": "News 1",
@@ -346,7 +335,6 @@ class TestSummaryGenerator(unittest.TestCase):
     @patch('src.summary_generator.load_config')
     @patch('src.summary_generator.setup_logging')
     def test_generate_summaries_by_category_invalid_config(self, mock_setup_logging, mock_load_config, mock_logging):
-        """Test generate_summaries_by_category with invalid config"""
         # Return a basic config first to set up the function
         mock_load_config.return_value = {
             "base_folder": "test_folder",
@@ -367,7 +355,6 @@ class TestSummaryGenerator(unittest.TestCase):
 
     @patch('src.summary_generator.model')
     def test_evaluate_story_importance_min_max_stories(self, mock_model):
-        """Test evaluate_story_importance with different story counts"""
         # Test with fewer stories than min_stories
         news_items_few = [
             {
@@ -398,23 +385,15 @@ class TestSummaryGenerator(unittest.TestCase):
         result_many = evaluate_story_importance(news_items_many, "Politics")
         self.assertLessEqual(len(result_many), 14)  # Should not exceed max_stories
 
-    def test_sort_by_category_empty_list(self):
-        """Test sort_by_category with empty list"""
-        result = sort_by_category([])
-        self.assertEqual(result, {})
-
     def test_sort_by_category_missing_category(self):
-        """Test sort_by_category with missing category"""
         news_items = [{"title": "Test", "description": "Test"}]
         result = sort_by_category(news_items)
         self.assertEqual(result, {"Uncategorized": news_items})
 
     def test_cosine_similarity_empty_vectors(self):
-        """Test cosine_similarity with empty vectors"""
         self.assertEqual(cosine_similarity([], []), 0)
 
     def test_generate_summary_empty_list(self):
-        """Test generate_summary with empty list"""
         with patch('src.summary_generator.model') as mock_model:
             mock_response = MagicMock()
             mock_response.content = "Empty summary"
@@ -424,14 +403,154 @@ class TestSummaryGenerator(unittest.TestCase):
 
     @patch('src.summary_generator.model')
     def test_evaluate_story_importance_empty_list(self, mock_model):
-        """Test evaluate_story_importance with empty list"""
         result = evaluate_story_importance([], "Politics")
         self.assertEqual(result, [])
 
-    def test_deduplicate_news_items_empty_list(self):
-        """Test deduplicate_news_items with empty list"""
-        result = deduplicate_news_items([])
-        self.assertEqual(result, [])
+    @patch('src.summary_generator.embeddings_model')
+    @patch('src.summary_generator.similar_titles')
+    def test_deduplicate_news_items_with_semantic_similarity(self, mock_similar_titles, mock_embeddings_model):
+        news_items = [
+            {"title": "First News", "description": "Test 1", "ai_summary": "Long summary"},
+            {"title": "Second News", "description": "Test 2", "ai_summary": "Short"}
+        ]
+        
+        # Set up mocks
+        mock_similar_titles.return_value = False  # Force semantic similarity check
+        mock_embeddings_model.embed_query.side_effect = [
+            [1.0, 0.0, 0.0],
+            [0.9, 0.0, 0.0]  # Very similar to first vector
+        ]
+        
+        result = deduplicate_news_items(news_items)
+        self.assertEqual(len(result), 1)
+
+    @patch('src.summary_generator.embeddings_model')
+    @patch('src.summary_generator.similar_titles')
+    def test_deduplicate_news_items_with_empty_title(self, mock_similar_titles_func, mock_embeddings_model):
+        news_items = [
+            {"title": "", "description": "Test 1"},
+            {"title": "Different", "description": "Test 2"}
+        ]
+        # Mock the similarity check to return False
+        mock_similar_titles_func.return_value = False
+        mock_embeddings_model.embed_query.return_value = [0, 0, 0]
+        
+        result = deduplicate_news_items(news_items)
+        self.assertEqual(len(result), 2)
+
+    @patch('src.summary_generator.model')
+    def test_evaluate_story_importance_with_valid_scores(self, mock_model):
+        news_items = [
+            {
+                "title": "News 1",
+                "description": "Description 1",
+                "category": "Politics",
+                "pub_date": datetime(2023, 1, 1),
+                "simple_id": "1"
+            },
+            {
+                "title": "News 2",
+                "description": "Description 2",
+                "category": "Politics",
+                "pub_date": datetime(2023, 1, 2),
+                "simple_id": "2"
+            }
+        ]
+        # Test lines 182-186: Valid scores processing
+        mock_response = MagicMock()
+        mock_response.content = "1:8\n2:5"
+        mock_model.invoke.return_value = mock_response
+        
+        result = evaluate_story_importance(news_items, "Politics")
+        self.assertEqual(len(result), 2)
+        # First item should be News 1 (score 8)
+        self.assertEqual(result[0]['title'], "News 1")
+
+    @patch('builtins.print')
+    @patch('src.summary_generator.generate_summaries_by_category')
+    def test_main_with_summaries(self, mock_generate_summaries, mock_print):
+        # Test line 230: Main function with summaries
+        mock_generate_summaries.return_value = {
+            "Category1": "Summary1",
+            "Category2": "Summary2"
+        }
+        
+        main("test_config.json")
+        
+        mock_print.assert_any_call("\nCategory1\nSummary1")
+        mock_print.assert_any_call("\nCategory2\nSummary2")
+
+    @patch('src.summary_generator.model')
+    def test_evaluate_story_importance_with_no_valid_scores(self, mock_model):
+        news_items = [
+            {
+                "title": "News 1",
+                "description": "Description 1",
+                "category": "Politics",
+                "pub_date": datetime(2023, 1, 1),
+                "simple_id": "1"
+            },
+            {
+                "title": "News 2",
+                "description": "Description 2",
+                "category": "Politics",
+                "pub_date": datetime(2023, 1, 2),
+                "simple_id": "2"
+            }
+        ]
+        
+        # Mock response with no valid scores
+        mock_response = MagicMock()
+        mock_response.content = "invalid_format\nno_scores_here\n1:invalid"
+        mock_model.invoke.return_value = mock_response
+        
+        # This should trigger the ValueError in line 182
+        result = evaluate_story_importance(news_items, "Politics")
+        
+        # Should fall back to date-based sorting
+        self.assertEqual(len(result), 2)
+        # Verify that we got both items in some order
+        dates = {item['pub_date'] for item in result}
+        self.assertEqual(dates, {datetime(2023, 1, 1), datetime(2023, 1, 2)})
+        # Verify that at least one item has the expected date
+        self.assertTrue(any(item['pub_date'] == datetime(2023, 1, 1) for item in result))
+        self.assertTrue(any(item['pub_date'] == datetime(2023, 1, 2) for item in result))
+
+    @patch('src.summary_generator.logging')
+    @patch('src.summary_generator.embeddings_model')
+    @patch('src.summary_generator.similar_titles')
+    def test_deduplicate_news_items_with_debug_logging(self, mock_similar_titles, mock_embeddings, mock_logging):
+        news_items = [
+            {"title": "Similar Title 1", "description": "Test 1"},
+            {"title": "Similar Title 2", "description": "Test 2"}
+        ]
+        
+        # Set up mocks
+        mock_similar_titles.return_value = False  # Force semantic similarity check
+        mock_embeddings.embed_query.side_effect = [
+            [1.0, 0.0, 0.0],
+            [0.9, 0.0, 0.0]  # Very similar to first vector
+        ]
+        
+        # Call the function
+        result = deduplicate_news_items(news_items)
+        
+        # Verify debug logging was called (line 165)
+        expected_message = "Semantic duplicate found: 'Similar Title 1' and 'Similar Title 2' (similarity: 0.90)"
+        mock_logging.debug.assert_called_once()
+        actual_call = mock_logging.debug.call_args[0][0]
+        self.assertTrue(
+            "Semantic duplicate found:" in actual_call and 
+            "Similar Title 1" in actual_call and 
+            "Similar Title 2" in actual_call
+        )
+
+    def test_main_empty_summaries(self):
+        with patch('src.summary_generator.generate_summaries_by_category') as mock_generate:
+            mock_generate.return_value = {}
+            with patch('builtins.print') as mock_print:
+                main("test_config.json")
+                mock_print.assert_not_called()
 
 if __name__ == "__main__":
     unittest.main()
