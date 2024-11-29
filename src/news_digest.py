@@ -9,17 +9,6 @@ from summary_generator import generate_summaries_by_category
 from utils import setup_logging, load_config
 
 def get_env_variable(var_name: str) -> str:
-    """Retrieve and validate environment variables.
-
-    Args:
-        var_name (str): Name of the environment variable to retrieve
-
-    Returns:
-        str: Value of the environment variable
-
-    Raises:
-        EnvironmentError: If the environment variable is not set
-    """
     value = os.getenv(var_name)
     if not value:
         logging.error(f"Environment variable {var_name} is not set")
@@ -27,15 +16,6 @@ def get_env_variable(var_name: str) -> str:
     return value
 
 def generate_email_content(summaries: Dict[str, str], week_number: int) -> str:
-    """Generate HTML email content from category summaries.
-
-    Args:
-        summaries (Dict[str, str]): Dictionary mapping categories to their summaries
-        week_number (int): Current week number for context
-
-    Returns:
-        str: Formatted HTML content for the email
-    """
     html_content = "<html><body>"
     for category, summary in summaries.items():
         html_content += f"<p><b>{category}</b></p><p>{summary}</p><br>"
@@ -43,19 +23,6 @@ def generate_email_content(summaries: Dict[str, str], week_number: int) -> str:
     return html_content
 
 def send_email(subject: str, html_content: str, sender_name: str, sender_email: str, recipient_email: str) -> None:
-    """Send email using Mailgun API.
-
-    Args:
-        subject (str): Email subject line
-        html_content (str): HTML formatted email content
-        sender_name (str): Name of the sender
-        sender_email (str): Email address of the sender
-        recipient_email (str): Email address of the recipient
-
-    Raises:
-        requests.RequestException: If the API request fails
-        EnvironmentError: If Mailgun credentials are not set
-    """
     url = f"https://api.mailgun.net/v3/{get_env_variable('MAILGUN_DOMAIN')}/messages"
     data = {
         "from": f"{sender_name} <{sender_email}>",
@@ -70,33 +37,12 @@ def send_email(subject: str, html_content: str, sender_name: str, sender_email: 
     logging.info(f"Email sent to {recipient_email}: {response.status_code}")
 
 def parse_arguments():
-    """Parse command line arguments.
-
-    Returns:
-        argparse.Namespace: Parsed command line arguments containing:
-            - config (str): Path to the configuration file
-    """
     import argparse
     parser = argparse.ArgumentParser(description="Weekly News Digest")
     parser.add_argument('--config', type=str, default='src/config.json', help='Path to the configuration file')
     return parser.parse_args()
 
 def main(config_path: str):
-    """Main function to generate and send the weekly news digest.
-
-    Handles the entire process of:
-    1. Loading configuration
-    2. Setting up logging
-    3. Generating category summaries
-    4. Creating and sending the email digest
-
-    Args:
-        config_path (str): Path to the configuration file
-
-    Raises:
-        FileNotFoundError: If config file or required directories don't exist
-        EnvironmentError: If required environment variables are not set
-    """
     config = load_config(config_path)
     config_dir = os.path.dirname(os.path.abspath(config_path))
     
@@ -124,10 +70,6 @@ def main(config_path: str):
     send_email(subject, email_content, sender_name, sender_email, recipient_email)
 
 def run():
-    """Entry point for the script when run directly.
-    
-    Handles argument parsing and calls the main function.
-    """
     args = parse_arguments()
     main(args.config)
 
