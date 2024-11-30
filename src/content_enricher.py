@@ -86,10 +86,8 @@ class ContentEnricher:
                      and 'ai_summary_failed' not in item]
         
         if not to_process:
-            logging.info("No articles to process")
             return
 
-        logging.info(f"Starting to process {len(to_process)} articles")
         processed = 0
         failed = 0
         
@@ -117,10 +115,6 @@ class ContentEnricher:
             # Save after each article (success or failure)
             with open(weekly_file, 'w', encoding='utf-8') as f:
                 json.dump(news_items, f, ensure_ascii=False, indent=4)
-            
-            # Log progress every 10 articles
-            if processed > 0 and processed % 10 == 0:
-                logging.info(f"Progress: {processed}/{len(to_process)} articles processed")
                 
             # Rate limiting
             time.sleep(self.enrichment_config.get("scraping_delay", 2))
@@ -150,7 +144,6 @@ def main(config_path: str):
             unenriched = len([item for item in news_items 
                             if 'ai_summary' not in item 
                             and 'ai_summary_failed' not in item])
-            logging.info(f"Found {unenriched} articles to process")
     
     enricher.enrich_weekly_news(year, week)
 
