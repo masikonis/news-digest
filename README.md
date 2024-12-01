@@ -30,3 +30,5 @@ I developed this application to help reduce my news addiction. After deciding to
 ## Automating with Launchd
 
 Automate the RSS scraper to run every hour on a Mac using a plist file with launchd. The `.plist` files required for this Python application are stored in the `~/Library/LaunchAgents/` directory.
+
+**Important**: To ensure the scheduled tasks run properly, your Mac needs to be awake when the plist files trigger. You can use the [Amphetamine app](https://apps.apple.com/us/app/amphetamine/id937984704) to schedule wake periods for your Mac. This prevents missing scheduled runs due to sleep mode.
