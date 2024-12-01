@@ -124,6 +124,9 @@ class ContentEnricher:
 def main(config_path: str):
     from datetime import datetime
     
+    # Add startup logging
+    logging.info("Content enrichment process started")
+    
     # Get config and set up logging paths
     config = load_config(config_path)
     config_dir = os.path.dirname(os.path.abspath(config_path))
