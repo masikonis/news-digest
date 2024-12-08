@@ -66,7 +66,7 @@ def cosine_similarity(v1: List[float], v2: List[float]) -> float:
     norm2 = sum(x * x for x in v2) ** 0.5
     return dot_product / (norm1 * norm2) if norm1 > 0 and norm2 > 0 else 0
 
-def deduplicate_news_items(news_items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+def deduplicate_news_items(news_items: List[Dict[str, Any]], use_semantic: bool = False) -> List[Dict[str, Any]]:
     logging.info(f"Starting deduplication of {len(news_items)} news items")
     
     # Sort by AI summary length (prioritize more detailed items)
@@ -76,12 +76,14 @@ def deduplicate_news_items(news_items: List[Dict[str, Any]]) -> List[Dict[str, A
         reverse=True
     )
     
-    # Get embeddings for all titles
-    titles = [item['title'] for item in sorted_news]
-    embeddings = [
-        embeddings_model.embed_query(title) 
-        for title in titles
-    ]
+    # Get embeddings only if semantic similarity is enabled
+    embeddings = []
+    if use_semantic:
+        titles = [item['title'] for item in sorted_news]
+        embeddings = [
+            embeddings_model.embed_query(title) 
+            for title in titles
+        ]
     
     unique_news = []
     seen_indices = set()
@@ -90,22 +92,21 @@ def deduplicate_news_items(news_items: List[Dict[str, Any]]) -> List[Dict[str, A
         if i in seen_indices:
             continue
             
-        # Check both string and semantic similarity
-        is_duplicate = False
         for j in range(i + 1, len(sorted_news)):
             if j in seen_indices:
                 continue
                 
-            # Check string similarity first (faster)
-            if similar_titles(titles[i], titles[j]):
+            # Check string similarity
+            if similar_titles(sorted_news[i]['title'], sorted_news[j]['title']):
                 seen_indices.add(j)
                 continue
                 
-            # Check semantic similarity
-            similarity = cosine_similarity(embeddings[i], embeddings[j])
-            if similarity > 0.70:
-                seen_indices.add(j)
-                logging.debug(f"Semantic duplicate found: '{titles[i]}' and '{titles[j]}' (similarity: {similarity:.2f})")
+            # Check semantic similarity only if enabled
+            if use_semantic:
+                similarity = cosine_similarity(embeddings[i], embeddings[j])
+                if similarity > 0.70:
+                    seen_indices.add(j)
+                    logging.debug(f"Semantic duplicate found: '{sorted_news[i]['title']}' and '{sorted_news[j]['title']}' (similarity: {similarity:.2f})")
         
         unique_news.append(item)
     
