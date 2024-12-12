@@ -34,5 +34,6 @@ Automate the RSS scraper to run every hour on a Mac using a plist file with laun
 **Important**: To ensure the scheduled tasks run properly, your Mac needs to be awake when the plist files trigger. You can use the [Amphetamine app](https://apps.apple.com/us/app/amphetamine/id937984704) to schedule wake periods for your Mac. This prevents missing scheduled runs due to sleep mode.
 
 ## Tech Stack
-[![codecov](https://codecov.io/gh/masikonis/news-digest/branch/main/graph/badge.svg)](https://codecov.io/gh/masikonis/news-digest)
 [![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
+[![OpenAI](https://img.shields.io/badge/OpenAI-412991?style=for-the-badge&logo=openai&logoColor=white)](https://openai.com/)
+[![Mailgun](https://img.shields.io/badge/Mailgun-F06B66?style=for-the-badge&logo=mailgun&logoColor=white)](https://www.mailgun.com/)
