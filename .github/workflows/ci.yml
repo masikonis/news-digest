@@ -28,6 +28,7 @@ jobs:
     - name: Run tests with coverage
       env:
         OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
       run: |
         PYTHONPATH=src coverage run -m unittest discover -s tests
         coverage xml
