@@ -11,8 +11,25 @@ from utils import setup_logging, load_config
 from difflib import SequenceMatcher
 import numpy as np
 
-model = initialize_model('advanced', temperature=0.7)
-embeddings_model = initialize_model('embeddings')
+def initialize_models(config_path: str):
+    config = load_config(config_path)
+    ai_config = config.get("ai_config", {"provider": "gemini"})
+    
+    model = initialize_model(
+        'advanced', 
+        temperature=ai_config.get("temperature", {}).get("chat", 0.7),
+        provider=ai_config.get("provider", "gemini")
+    )
+    
+    embeddings_model = initialize_model(
+        'embeddings',
+        provider=ai_config.get("provider", "gemini")
+    )
+    
+    return model, embeddings_model
+
+# Initialize models with default config
+model, embeddings_model = initialize_models("src/config.json")
 
 def get_latest_json_file(directory: str) -> str:
     json_files = glob.glob(os.path.join(directory, "*.json"))
@@ -36,7 +53,7 @@ def sort_by_category(news_items: List[Dict[str, Any]]) -> Dict[str, List[Dict[st
 def generate_summary(news_items: List[Dict[str, Any]]) -> str:
     prompt = (
         "Tu esi patyręs žurnalistas ir naujienų apžvalgininkas. Tavo užduotis:\n\n"
-        "1. Sukurti TIKSLIAI 120 žodžių paragrafą (ne ilgesnį!)\n"
+        "1. Sukurti TIKSLIAI 200 žodžių paragrafą (ne ilgesnį!)\n"
         "2. Naudoti formalų ir aiškų stilių\n"
         "3. Sujungti naujienas į rišlų ir nuoseklų pasakojimą\n"
         "4. Pabrėžti 3-4 svarbiausius įvykius\n"
@@ -228,6 +245,10 @@ def generate_summaries_by_category(config_path: str) -> Dict[str, str]:
     return summaries_by_category
 
 def main(config_path: str):
+    # Re-initialize models with provided config
+    global model, embeddings_model
+    model, embeddings_model = initialize_models(config_path)
+    
     summaries = generate_summaries_by_category(config_path)
     for category, summary in summaries.items():
         print(f"\n{category}\n{summary}")

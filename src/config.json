@@ -22,5 +22,12 @@
                 "selector": "div.single-post-content"
             }
         }
+    },
+    "ai_config": {
+        "provider": "gemini",
+        "temperature": {
+            "chat": 0.7,
+            "analysis": 0.2
+        }
     }
 }

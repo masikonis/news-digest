@@ -31,8 +31,8 @@ class TestNewsDigest(unittest.TestCase):
         week_number = 1
         expected_content = (
             "<html><body>"
-            "<p><b>Category1</b></p><p>Summary1</p><br>"
-            "<p><b>Category2</b></p><p>Summary2</p><br>"
+            "<p><b>Category1</b></p><p>Summary1</p>"
+            "<p><b>Category2</b></p><p>Summary2</p>"
             "</body></html>"
         )
         self.assertEqual(generate_email_content(summaries, week_number), expected_content)

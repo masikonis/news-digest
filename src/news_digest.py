@@ -18,7 +18,7 @@ def get_env_variable(var_name: str) -> str:
 def generate_email_content(summaries: Dict[str, str], week_number: int) -> str:
     html_content = "<html><body>"
     for category, summary in summaries.items():
-        html_content += f"<p><b>{category}</b></p><p>{summary}</p><br>"
+        html_content += f"<p><b>{category}</b></p><p>{summary}</p>"
     html_content += "</body></html>"
     return html_content
 

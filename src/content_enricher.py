@@ -28,7 +28,14 @@ class ContentEnricher:
         self.config = load_config(config_path)
         self.enrichment_config = self.config.get("content_enrichment", {})
         self.base_folder = os.path.join(project_root, self.config["base_folder"])
-        self.model = initialize_model('basic', temperature=0.3)
+        
+        # Get AI provider configuration
+        ai_config = self.config.get("ai_config", {"provider": "gemini"})
+        self.model = initialize_model(
+            'basic', 
+            temperature=ai_config.get("temperature", {}).get("analysis", 0.3),
+            provider=ai_config.get("provider", "gemini")
+        )
         
     def get_full_content(self, url: str) -> Optional[str]:
         domain = urlparse(url).netloc

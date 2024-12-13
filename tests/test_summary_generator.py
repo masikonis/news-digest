@@ -539,12 +539,27 @@ class TestSummaryGenerator(unittest.TestCase):
         # Remove the debug logging assertion since it's not needed for string similarity matches
         self.assertEqual(len(result), 1)
 
-    def test_main_empty_summaries(self):
+    @patch('src.summary_generator.load_config')
+    def test_main_empty_summaries(self, mock_load_config):
+        mock_load_config.return_value = {"base_folder": "test_folder"}
         with patch('src.summary_generator.generate_summaries_by_category') as mock_generate:
             mock_generate.return_value = {}
             with patch('builtins.print') as mock_print:
                 main("test_config.json")
                 mock_print.assert_not_called()
+
+    @patch('src.summary_generator.load_config')
+    def test_main_with_summaries(self, mock_load_config):
+        mock_load_config.return_value = {"base_folder": "test_folder"}
+        with patch('src.summary_generator.generate_summaries_by_category') as mock_generate:
+            mock_generate.return_value = {
+                "Category1": "Summary1",
+                "Category2": "Summary2"
+            }
+            with patch('builtins.print') as mock_print:
+                main("test_config.json")
+                mock_print.assert_any_call("\nCategory1\nSummary1")
+                mock_print.assert_any_call("\nCategory2\nSummary2")
 
     def test_cosine_similarity_known_values(self):
         v1 = [1, 0]
