@@ -24,7 +24,7 @@
         }
     },
     "ai_config": {
-        "provider": "gemini",
+        "provider": "openai",
         "temperature": {
             "chat": 0.7,
             "analysis": 0.2

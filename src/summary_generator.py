@@ -13,17 +13,17 @@ import numpy as np
 
 def initialize_models(config_path: str):
     config = load_config(config_path)
-    ai_config = config.get("ai_config", {"provider": "gemini"})
+    ai_config = config.get("ai_config", {"provider": "openai"})
     
     model = initialize_model(
         'advanced', 
         temperature=ai_config.get("temperature", {}).get("chat", 0.7),
-        provider=ai_config.get("provider", "gemini")
+        provider=ai_config.get("provider", "openai")
     )
     
     embeddings_model = initialize_model(
         'embeddings',
-        provider=ai_config.get("provider", "gemini")
+        provider=ai_config.get("provider", "openai")
     )
     
     return model, embeddings_model

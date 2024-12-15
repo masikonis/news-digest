@@ -30,11 +30,11 @@ class ContentEnricher:
         self.base_folder = os.path.join(project_root, self.config["base_folder"])
         
         # Get AI provider configuration
-        ai_config = self.config.get("ai_config", {"provider": "gemini"})
+        ai_config = self.config.get("ai_config", {"provider": "openai"})
         self.model = initialize_model(
             'basic', 
             temperature=ai_config.get("temperature", {}).get("analysis", 0.3),
-            provider=ai_config.get("provider", "gemini")
+            provider=ai_config.get("provider", "openai")
         )
         
     def get_full_content(self, url: str) -> Optional[str]:

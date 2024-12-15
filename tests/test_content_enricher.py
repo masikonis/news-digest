@@ -44,7 +44,7 @@ class TestContentEnricher(unittest.TestCase):
         # Update the assertion to match the absolute path
         expected_path = os.path.join('/path/to/project/root', "test_folder")
         self.assertEqual(enricher.base_folder, expected_path)
-        mock_init_model.assert_called_once_with('basic', temperature=0.3, provider='gemini')
+        mock_init_model.assert_called_once_with('basic', temperature=0.3, provider='openai')
 
     @patch('src.content_enricher.initialize_model')
     @patch('src.content_enricher.requests.get')
