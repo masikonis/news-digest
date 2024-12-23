@@ -12,6 +12,9 @@ from difflib import SequenceMatcher
 import numpy as np
 
 def initialize_models(config_path: str):
+    if not os.path.isabs(config_path):
+        config_path = os.path.abspath(os.path.join(os.path.dirname(__file__), config_path))
+    
     config = load_config(config_path)
     ai_config = config.get("ai_config", {"provider": "openai"})
     
@@ -28,8 +31,8 @@ def initialize_models(config_path: str):
     
     return model, embeddings_model
 
-# Initialize models with default config
-model, embeddings_model = initialize_models("src/config.json")
+default_config = os.path.join(os.path.dirname(__file__), "config.json")
+model, embeddings_model = initialize_models(default_config)
 
 def get_latest_json_file(directory: str) -> str:
     json_files = glob.glob(os.path.join(directory, "*.json"))

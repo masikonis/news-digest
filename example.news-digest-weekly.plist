@@ -24,5 +24,7 @@
     <string>/Users/nerijus/Python/masikonis/news-digest/output.log</string>
     <key>StandardErrorPath</key>
     <string>/Users/nerijus/Python/masikonis/news-digest/output.log</string>
+    <key>WorkingDirectory</key>
+    <string>/Users/nerijus/Python/masikonis/news-digest/src</string>
 </dict>
 </plist>
