@@ -56,7 +56,7 @@ def sort_by_category(news_items: List[Dict[str, Any]]) -> Dict[str, List[Dict[st
 def generate_summary(news_items: List[Dict[str, Any]]) -> str:
     prompt = (
         "Tu esi patyręs žurnalistas ir naujienų apžvalgininkas. Tavo užduotis:\n\n"
-        "1. Sukurti TIKSLIAI 200 žodžių paragrafą (ne ilgesnį!)\n"
+        "1. Sukurti TIKSLIAI 120 žodžių paragrafą (ne ilgesnį!)\n"
         "2. Naudoti formalų ir aiškų stilių\n"
         "3. Sujungti naujienas į rišlų ir nuoseklų pasakojimą\n"
         "4. Pabrėžti 3-4 svarbiausius įvykius\n"
