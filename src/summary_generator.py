@@ -19,7 +19,7 @@ def initialize_models(config_path: str):
     ai_config = config.get("ai_config", {"provider": "openai"})
     
     model = initialize_model(
-        'advanced', 
+        'basic', 
         temperature=ai_config.get("temperature", {}).get("chat", 0.7),
         provider=ai_config.get("provider", "openai")
     )
